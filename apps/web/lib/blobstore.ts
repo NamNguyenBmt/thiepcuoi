@@ -12,6 +12,7 @@
 
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { once } from './once';
 
 export interface BlobStore {
   put(key: string, data: Buffer, contentType: string): Promise<void>;
@@ -117,19 +118,18 @@ async function s3Store(config: S3Config): Promise<BlobStore> {
 
 // ─────────────────────────── Chọn một lần ───────────────────────────
 
-let store: Promise<BlobStore> | null = null;
+const store = once(async () => {
+  const config = readS3Config();
+  const chosen = config ? await s3Store(config) : diskStore();
+  console.log(`[assets] đang dùng ${chosen.describe()}`);
+  return chosen;
+});
 
 export function getBlobStore(): Promise<BlobStore> {
-  store ??= (async () => {
-    const config = readS3Config();
-    const chosen = config ? await s3Store(config) : diskStore();
-    console.log(`[assets] đang dùng ${chosen.describe()}`);
-    return chosen;
-  })();
-  return store;
+  return store.get();
 }
 
 /** Chỉ dùng trong test: quên lựa chọn cũ để lần sau đọc lại biến môi trường */
 export function resetBlobStore(): void {
-  store = null;
+  store.reset();
 }

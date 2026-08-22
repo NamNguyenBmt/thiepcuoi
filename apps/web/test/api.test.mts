@@ -494,5 +494,69 @@ check('co host va cong', moTa === 'aws-0-ap-northeast-2.pooler.supabase.com:6543
 check('khong co URL thi bao dung PGlite', describeDatabaseUrl('').includes('PGlite'));
 check('URL hong thi bao ro', describeDatabaseUrl('postgresql://u:pa#ss@host:5432/db').includes('percent-encode'));
 
+console.log('20. once(): chi nho khi khoi tao thanh cong');
+const { once } = await import('../lib/once');
+
+let soLanTao = 0;
+const luonOk = once(async () => {
+  soLanTao++;
+  return `lan ${soLanTao}`;
+});
+check('goi hai lan chi tao mot lan', (await luonOk.get()) === 'lan 1' && (await luonOk.get()) === 'lan 1');
+check('nhieu loi goi dong thoi cung chi tao mot lan', soLanTao === 1, soLanTao);
+luonOk.reset();
+check('reset thi tao lai', (await luonOk.get()) === 'lan 2');
+
+// Đây mới là lỗi cần sửa: hỏng lần đầu không được nhớ lại mãi
+let hong = true;
+let soLanThu = 0;
+const chapChon = once(async () => {
+  soLanThu++;
+  if (hong) throw new Error('ECONNREFUSED');
+  return 'da noi duoc';
+});
+
+let nemLoi = false;
+try {
+  await chapChon.get();
+} catch {
+  nemLoi = true;
+}
+check('lan dau hong thi nem loi', nemLoi);
+
+let nemLoiLanHai = false;
+try {
+  await chapChon.get();
+} catch {
+  nemLoiLanHai = true;
+}
+check('van hong thi van nem loi', nemLoiLanHai && soLanThu === 2, soLanThu);
+
+hong = false;
+check('khi da song lai thi noi duoc, khong tra ve loi da cache', (await chapChon.get()) === 'da noi duoc');
+check('song roi thi lai nho, khong tao them', (await chapChon.get()) === 'da noi duoc' && soLanThu === 3, soLanThu);
+
+console.log('21. getSql() thu lai sau khi ket noi hong');
+const { getSql, resetSql } = await import('../lib/sql');
+const urlThat = process.env.DATABASE_URL;
+
+resetSql();
+// Cổng 1 trên localhost: bị từ chối ngay, không phải chờ DNS
+process.env.DATABASE_URL = 'postgres://u:p@127.0.0.1:1/khong-co';
+let ketNoiHong = false;
+try {
+  await getSql();
+} catch {
+  ketNoiHong = true;
+}
+check('database khong nghe thi nem loi', ketNoiHong);
+
+if (urlThat === undefined) delete process.env.DATABASE_URL;
+else process.env.DATABASE_URL = urlThat;
+
+const sqlSauKhiHong = await getSql();
+const { rows: thuLai } = await sqlSauKhiHong.query<{ n: number }>('select 1 as n');
+check('database song lai thi dung duoc ngay, khong can khoi dong lai', thuLai[0]?.n === 1, thuLai);
+
 console.log(failed === 0 ? '\nPASS' : `\n${failed} FAILED`);
 process.exit(failed === 0 ? 0 : 1);

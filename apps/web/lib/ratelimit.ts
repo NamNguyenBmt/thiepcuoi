@@ -11,6 +11,8 @@
  * có nó thì form đăng nhập cho phép thử mật khẩu vô hạn với tốc độ mạng.
  */
 
+import { once } from './once';
+
 export interface RateLimitResult {
   ok: boolean;
   /** Còn bao nhiêu lượt trong cửa sổ hiện tại */
@@ -145,16 +147,15 @@ export function selectLimiterKind(env: NodeJS.ProcessEnv = process.env): 'memory
   return env.REDIS_URL ? 'redis' : 'memory';
 }
 
-let limiter: Promise<Limiter> | null = null;
+const limiter = once(async () => {
+  const url = process.env.REDIS_URL;
+  const chosen = url ? await connectRedis(url) : memoryLimiter();
+  console.log(`[ratelimit] đang dùng ${chosen.describe()}`);
+  return chosen;
+});
 
 function getLimiter(): Promise<Limiter> {
-  limiter ??= (async () => {
-    const url = process.env.REDIS_URL;
-    const chosen = url ? await connectRedis(url) : memoryLimiter();
-    console.log(`[ratelimit] đang dùng ${chosen.describe()}`);
-    return chosen;
-  })();
-  return limiter;
+  return limiter.get();
 }
 
 export async function rateLimit(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
@@ -182,5 +183,5 @@ export function clientKey(request: Request, prefix: string): string {
 
 /** Chỉ dùng trong test: quên lựa chọn/trạng thái cũ để lần sau đọc lại biến môi trường */
 export function resetRateLimits(): void {
-  limiter = null;
+  limiter.reset();
 }

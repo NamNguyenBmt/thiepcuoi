@@ -17,6 +17,7 @@
 
 import { readFile } from 'node:fs/promises';
 import { assertConfig } from './config-check';
+import { once } from './once';
 import { join } from 'node:path';
 
 export interface QueryResult<T> {
@@ -90,16 +91,15 @@ async function createPgliteClient(dataDir: string): Promise<Sql> {
 
 // ─────────────────────────── Khởi tạo một lần ───────────────────────────
 
-let ready: Promise<Sql> | null = null;
+const ready = once(connect);
 
 export function getSql(): Promise<Sql> {
-  ready ??= connect();
-  return ready;
+  return ready.get();
 }
 
 /** Chỉ dùng trong test: quên kết nối cũ để lần sau đọc lại biến môi trường */
 export function resetSql(): void {
-  ready = null;
+  ready.reset();
 }
 
 /**
