@@ -456,6 +456,27 @@ function fakeRedis(): RedisLikeT {
 const redisLimiter = createRedisLimiter(fakeRedis(), 'fake redis');
 check('mo ta dung nhu truyen vao', redisLimiter.describe() === 'fake redis');
 
+let pingOk = true;
+try {
+  await redisLimiter.ping();
+} catch {
+  pingOk = false;
+}
+check('ping qua duoc khi redis song', pingOk);
+
+// Redis chết thì health check phải biết, không được im lặng coi như bình thường
+const redisChet = createRedisLimiter(
+  { ...fakeRedis(), zcard: async () => { throw new Error('ECONNREFUSED'); } },
+  'redis hong',
+);
+let pingNem = false;
+try {
+  await redisChet.ping();
+} catch {
+  pingNem = true;
+}
+check('ping nem loi khi redis chet', pingNem);
+
 const redisHits: boolean[] = [];
 for (let i = 0; i < 4; i++) redisHits.push((await redisLimiter.hit('rk', 3, 60_000)).ok);
 check('redis: chan sau khi vuot nguong', JSON.stringify(redisHits) === '[true,true,true,false]', redisHits);

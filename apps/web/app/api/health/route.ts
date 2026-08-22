@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { describeDatabaseUrl, getSql } from '@/lib/sql';
 import { getBlobStore } from '@/lib/blobstore';
 import { checkConfig } from '@/lib/config-check';
+import { rateLimitBackend } from '@/lib/ratelimit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -41,6 +42,11 @@ export async function GET() {
     }
     return store.describe();
   });
+
+  // Chạm thật vào bộ đếm chứ không chỉ đọc biến môi trường: có REDIS_URL mà
+  // Redis không nối được thì rate limit âm thầm hỏng, mà nhìn từ ngoài thì
+  // giống hệt lúc chạy đúng — cho tới khi có người dò mật khẩu hàng loạt.
+  checks.ratelimit = await timed(rateLimitBackend);
 
   const config = checkConfig().filter((i) => i.level === 'error');
   const ok = Object.values(checks).every((c) => c.ok) && config.length === 0;

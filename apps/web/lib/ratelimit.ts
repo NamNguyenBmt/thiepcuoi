@@ -21,6 +21,8 @@ export interface RateLimitResult {
 
 interface Limiter {
   hit(key: string, limit: number, windowMs: number): Promise<RateLimitResult>;
+  /** Chạm nhẹ để chứng minh nối được, không ghi gì — health check dùng */
+  ping(): Promise<void>;
   /** Mô tả ngắn để in ra log lúc khởi động — biết mình đang đếm ở đâu */
   describe(): string;
 }
@@ -36,6 +38,8 @@ function memoryLimiter(): Limiter {
 
   return {
     describe: () => 'bộ nhớ tiến trình (một instance)',
+    // Bộ nhớ thì luôn "nối được": có chính nó là đủ
+    ping: async () => {},
     hit: async (key, limit, windowMs) => {
       const now = Date.now();
       const bucket = buckets.get(key) ?? { hits: [] };
@@ -86,6 +90,11 @@ export interface RedisLike {
 export function createRedisLimiter(client: RedisLike, describe: string): Limiter {
   return {
     describe: () => describe,
+    // Đếm phần tử của một khoá không ai ghi: một lệnh đọc, không đụng dữ liệu
+    // thật, và vẫn đủ để lộ ra nếu không nối được Redis.
+    ping: async () => {
+      await client.zcard('ratelimit:ping');
+    },
     hit: async (key, limit, windowMs) => {
       const now = Date.now();
       const windowKey = `ratelimit:${key}`;
@@ -150,6 +159,19 @@ function getLimiter(): Promise<Limiter> {
 
 export async function rateLimit(key: string, limit: number, windowMs: number): Promise<RateLimitResult> {
   return (await getLimiter()).hit(key, limit, windowMs);
+}
+
+/**
+ * Chạm thật vào bộ đếm rồi cho biết đang đếm ở đâu — để health check nói ra được.
+ *
+ * Nhìn từ ngoài, hạn mức đúng, hạn mức bị nhân lên theo số instance, và Redis
+ * chết hẳn trông y hệt nhau cho tới lúc bị lạm dụng thật; còn dòng log lúc khởi
+ * động thì trôi mất ngay. Chuỗi trả về không kèm mật khẩu (xem `connectRedis`).
+ */
+export async function rateLimitBackend(): Promise<string> {
+  const backend = await getLimiter();
+  await backend.ping();
+  return backend.describe();
 }
 
 /** Khoá theo IP. Sau proxy thì tin x-forwarded-for; tự host thẳng thì không có header này. */

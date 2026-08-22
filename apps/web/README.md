@@ -31,7 +31,7 @@ npm run build
 | `GET/POST /api/assets` | Thư viện ảnh: liệt kê / tải lên |
 | `GET /api/captcha` | Câu hỏi "không phải robot" cho form đăng ký |
 | `GET /api/assets/[...key]` | Phục vụ ảnh kèm crop/resize/format/quality |
-| `GET /api/health` | Chạm thật vào database + kho ảnh; 200/503 |
+| `GET /api/health` | Chạm thật vào database + kho ảnh + bộ đếm rate limit; 200/503 |
 | `POST /api/auth/login` · `logout` · `GET me` | Phiên đăng nhập |
 | `POST /api/auth/register` | Tạo tài khoản mới, tự đăng nhập luôn sau khi tạo |
 | `POST /api/templates` · `DELETE /api/templates/[id]` | Tạo mẫu (trống hoặc nhân bản) · xoá |
@@ -122,6 +122,10 @@ Vài chi tiết cố ý:
   bản bộ nhớ. Một instance không Redis vẫn đúng như cấu hình; nhiều instance
   mà không đặt `REDIS_URL` thì hạn mức thực tế nhân lên theo số instance. Ở
   `next dev` bộ đếm bộ nhớ còn reset mỗi lần hot-reload.
+
+  `/api/health` chạm thật vào bộ đếm rồi nói ra đang đếm ở đâu: đúng hạn mức,
+  hạn mức nhân lên theo số instance, và Redis chết hẳn — nhìn từ ngoài ba thứ
+  đó giống hệt nhau cho tới lúc bị lạm dụng thật.
 - **`/quan-ly` chặn ngay ở server.** Kiểm tra ở client thì dữ liệu đã kịp gửi
   xuống trước khi giao diện kịp giấu đi.
 
