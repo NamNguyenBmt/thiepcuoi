@@ -77,6 +77,17 @@ lại bằng `x-vercel-id`, phần giữa phải là `icn1`.
 
 Đổi database sang nhà cung cấp khác thì nhớ chỉnh lại region cho khớp.
 
+**Redis cũng vậy.** Chuyển hàm về Seoul xong mà quên Redis thì nó thành thứ xa
+nhất: rate limit vọt lên 207 ms, đúng trên đường đi của RSVP, lời chúc và bắn
+tim. Upstash chạy trên AWS và không có `ap-northeast-2`, nên chọn Tokyo
+(`hnd1`) — gần Seoul nhất, đo được 36 ms. Region của database Upstash **không
+sửa được sau khi tạo**, phải xoá và tạo lại (bên trong chỉ là bộ đếm có hạn vài
+phút nên không mất gì), rồi nối lại vào project với prefix `REDIS` để biến sinh
+ra đúng tên `REDIS_URL`.
+
+Số đo sau khi cả ba nằm cùng vùng: database 5 ms, kho ảnh 39 ms, Redis 36 ms —
+xem `/api/health`.
+
 ## Điều còn giới hạn
 
 **Rate limit mặc định đếm trong bộ nhớ tiến trình.** Một instance thì đúng như
