@@ -21,8 +21,8 @@ const DATA = join(root, '.local', 'pgdata');
 const LOG = join(root, '.local', 'pg.log');
 const PORT = process.env.PGPORT ?? '5433';
 
-function run(bin: string, args: string[]): number {
-  const result = spawnSync(bin, args, { stdio: 'inherit' });
+function run(bin: string, args: string[], env?: NodeJS.ProcessEnv): number {
+  const result = spawnSync(bin, args, { stdio: 'inherit', env: env ? { ...process.env, ...env } : process.env });
   return result.status ?? 1;
 }
 
@@ -64,8 +64,22 @@ switch (command) {
     process.exit(run(exe('pg_ctl'), ['-D', DATA, 'stop']));
   case 'status':
     process.exit(run(exe('pg_ctl'), ['-D', DATA, 'status']));
+  /**
+   * Cẩn thận với tiếng Việt trên Windows: chuỗi truyền qua `-c "..."` đi vào
+   * psql theo bảng mã của console, ký tự nào bảng mã đó không có sẽ **âm thầm
+   * thành dấu `?`** rồi nằm luôn trong database — đã dính một lần, tên mẫu
+   * "Mẫu thật" biến thành "M?u th?t" (đúng 8 byte, tức `?` là ký tự thật chứ
+   * không phải lỗi hiển thị). Có dấu thì viết vào file .sql lưu UTF-8 rồi
+   * `-f file.sql`, đừng nhét thẳng vào dòng lệnh.
+   */
   case 'psql':
-    process.exit(run(exe('psql'), ['-h', 'localhost', '-p', PORT, '-U', 'postgres', ...process.argv.slice(3)]));
+    process.exit(
+      run(
+        exe('psql'),
+        ['-h', 'localhost', '-p', PORT, '-U', 'postgres', ...process.argv.slice(3)],
+        { PGCLIENTENCODING: 'UTF8' },
+      ),
+    );
   default:
     console.error('Dùng: npm run db -- <init|start|stop|status|psql>');
     process.exit(1);
