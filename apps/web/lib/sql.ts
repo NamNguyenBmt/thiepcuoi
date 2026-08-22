@@ -102,6 +102,29 @@ export function resetSql(): void {
   ready = null;
 }
 
+/**
+ * Mô tả nơi `DATABASE_URL` trỏ tới, đủ để chẩn đoán mà không lộ bí mật: chỉ
+ * host, cổng và tên database — user và mật khẩu không bao giờ đi ra ngoài.
+ *
+ * Cần vì khi chuỗi kết nối bị dán sai (thiếu một đoạn, hoặc mật khẩu chứa ký tự
+ * đặc biệt chưa percent-encode), driver chỉ kêu "ENOTFOUND <host lạ>" — không
+ * nói được là chuỗi hỏng chỗ nào, mà biến môi trường thì thường đã bị đánh dấu
+ * nhạy cảm nên không ai đọc lại được để đối chiếu.
+ */
+export function describeDatabaseUrl(url = process.env.DATABASE_URL): string {
+  if (!url) return 'PGlite nhúng (không đặt DATABASE_URL)';
+
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return 'DATABASE_URL không phải URL hợp lệ (ký tự đặc biệt trong mật khẩu phải percent-encode)';
+  }
+
+  const database = parsed.pathname.replace(/^\//, '') || '(thiếu tên database)';
+  return `${parsed.hostname || '(thiếu host)'}:${parsed.port || '(thiếu cổng)'}/${database}`;
+}
+
 async function connect(): Promise<Sql> {
   // Kiểm cấu hình ngay lần chạm database đầu tiên: production thiếu biến thì
   // ném lỗi ở đây, còn hơn để khách mời phát hiện hộ.

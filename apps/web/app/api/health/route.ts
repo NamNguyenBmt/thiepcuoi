@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSql } from '@/lib/sql';
+import { describeDatabaseUrl, getSql } from '@/lib/sql';
 import { getBlobStore } from '@/lib/blobstore';
 import { checkConfig } from '@/lib/config-check';
 
@@ -23,6 +23,12 @@ export async function GET() {
     const { rows } = await sql.query<{ n: string }>('select count(*)::text as n from templates');
     return `${rows[0]?.n ?? '?'} mẫu`;
   });
+
+  // Hỏng thì nói luôn đang gõ cửa nhà nào (host/cổng, không kèm user lẫn mật
+  // khẩu): "ENOTFOUND base" một mình không cho biết chuỗi kết nối sai chỗ nào.
+  if (!checks.database.ok) {
+    checks.database.detail += ` — đang nối tới ${describeDatabaseUrl()}`;
+  }
 
   checks.assets = await timed(async () => {
     const store = await getBlobStore();

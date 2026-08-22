@@ -463,5 +463,15 @@ check('redis: khoa khac khong bi anh huong', (await redisLimiter.hit('rk-2', 3, 
 const redisBlocked = await redisLimiter.hit('rk', 3, 60_000);
 check('redis: bao thoi gian cho', redisBlocked.retryAfter > 0 && redisBlocked.retryAfter <= 60, redisBlocked);
 
+console.log('19. mo ta DATABASE_URL (chan doan, khong lo bi mat)');
+const { describeDatabaseUrl } = await import('../lib/sql');
+
+const moTa = describeDatabaseUrl('postgresql://postgres.abc:sieu-bi-mat@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres');
+check('khong lo mat khau', !moTa.includes('sieu-bi-mat'), moTa);
+check('khong lo user', !moTa.includes('postgres.abc'), moTa);
+check('co host va cong', moTa === 'aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres', moTa);
+check('khong co URL thi bao dung PGlite', describeDatabaseUrl('').includes('PGlite'));
+check('URL hong thi bao ro', describeDatabaseUrl('postgresql://u:pa#ss@host:5432/db').includes('percent-encode'));
+
 console.log(failed === 0 ? '\nPASS' : `\n${failed} FAILED`);
 process.exit(failed === 0 ? 0 : 1);
