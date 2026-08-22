@@ -13,7 +13,7 @@ src/animation.ts        entrance (IntersectionObserver) + continuous (keyframes)
 src/html.ts             lọc HTML inline của TextBox
 src/image.ts            chọn bề rộng ảnh xin từ CDN
 src/registry.ts         NodeType → component
-src/nodes/              11 component node
+src/nodes/              12 component node (kèm envelope.tsx — bì thư mở màn)
 ```
 
 ## Dùng
@@ -41,6 +41,15 @@ Trong editor: `mode: 'editor'` (tự bật `eager`, tắt animation, giữ token
 chặn submit form và mở modal).
 
 ## Bốn quyết định đáng chú ý
+
+**0. Bì thư dựng bằng CSS, không phải ảnh.** `nodes/envelope.tsx` vẽ nắp và
+hai cánh bì bằng ba tam giác `border`, kích thước tính theo `calc()` từ hai
+biến `--ew`/`--eh`. Một bảng CSS duy nhất phục vụ mọi bì thư, đổi màu là đổi
+bốn biến — và lá thư trồi lên vẫn chui được từ *dưới* nắp lên *trên* nó, thứ
+mà một tấm ảnh bì thư không làm được. Khi `lockScrollUntilOpened` bật, node
+tự đi ngược cây DOM khoá mọi khung cuộn bao quanh nó rồi trả lại nguyên trạng
+lúc mở — khoá mỗi `body` thì bản desktop (thiệp cuộn trong khung riêng) vẫn
+trôi tuột qua màn chào.
 
 **1. Hai lớp div mỗi node.** Animation vào (`transition`) và animation lặp
 (`keyframes`) đều ghi vào `transform`. Để chung một phần tử thì cái sau đè cái

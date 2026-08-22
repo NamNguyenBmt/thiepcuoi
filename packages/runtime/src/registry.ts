@@ -9,6 +9,7 @@
 import type { ComponentType } from 'react';
 import type { NodeType, TemplateNode } from '@thiepcuoi/schema';
 import { TextNode, PhotoNode, ShapeNode } from './nodes/basic';
+import { EnvelopeNode } from './nodes/envelope';
 import { CalendarNode, CountDownNode } from './nodes/date';
 import { RsvpFormNode, WishesNode, MapNode, GiftQrNode } from './nodes/interactive';
 import { GalleryNode, VideoNode } from './nodes/media';
@@ -19,6 +20,7 @@ export const NODE_REGISTRY: Record<NodeType, AnyNodeComponent> = {
   Text: TextNode,
   Photo: PhotoNode,
   Shape: ShapeNode,
+  Envelope: EnvelopeNode,
   Calendar: CalendarNode,
   CountDown: CountDownNode,
   RsvpForm: RsvpFormNode,

@@ -273,7 +273,7 @@ export function InviteForm({ inviteId, initialSlug, initialPublished, initialDat
   );
 }
 
-type PartyField = 'fullName' | 'shortName' | 'father' | 'mother' | 'address';
+type PartyField = 'fullName' | 'shortName' | 'birthday' | 'father' | 'mother' | 'address';
 
 function PartyFields({
   value,
@@ -285,6 +285,7 @@ function PartyFields({
   const fields: Array<[PartyField, string]> = [
     ['fullName', 'Họ tên đầy đủ'],
     ['shortName', 'Tên gọi (hiện trên bìa)'],
+    ['birthday', 'Ngày sinh'],
     ['father', 'Tên bố'],
     ['mother', 'Tên mẹ'],
     ['address', 'Địa chỉ'],

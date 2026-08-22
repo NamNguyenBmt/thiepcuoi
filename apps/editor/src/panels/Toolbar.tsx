@@ -16,7 +16,7 @@ import { SessionBar } from './SessionBar';
 import { TemplatePicker } from './TemplatePicker';
 
 const LABEL: Record<NodeType, string> = {
-  Text: 'Chữ', Photo: 'Ảnh', Shape: 'Hoạ tiết', Calendar: 'Lịch', CountDown: 'Đếm ngược',
+  Text: 'Chữ', Photo: 'Ảnh', Shape: 'Hoạ tiết', Envelope: 'Bì thư', Calendar: 'Lịch', CountDown: 'Đếm ngược',
   RsvpForm: 'Form', Gallery: 'Album', GiftQr: 'Mừng cưới', Map: 'Chỉ đường', Wishes: 'Lưu bút', Video: 'Video',
 };
 

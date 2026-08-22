@@ -49,10 +49,12 @@ function check(name: string, cond: boolean, extra?: unknown) {
 
 console.log('1. seed');
 const templates = await listTemplates();
-// "Cơ bản" (ví dụ tối giản) + "Trọn vẹn" (mẫu mà thiệp mồi dùng)
-check('có 2 template mồi', templates.length === 2, templates.length);
+// "Cơ bản" (ví dụ tối giản) + "Trọn vẹn" + "Ngọt ngào" (mẫu mà thiệp mồi dùng)
+check('có 3 template mồi', templates.length === 3, templates.length);
 const full = templates.find((t) => t.slug === 'tron-ven');
 check('có mẫu Trọn vẹn', !!full, templates.map((t) => t.slug));
+const sweet = templates.find((t) => t.slug === 'ngot-ngao');
+check('có mẫu Ngọt ngào', !!sweet, templates.map((t) => t.slug));
 const invite = await getInviteBySlug('quan-lan');
 check('có thiệp mẫu', invite?.data.groom.shortName === 'Quân', invite?.slug);
 
@@ -61,6 +63,15 @@ const doc = unpackDoc(full!.docPacked);
 const errors = validateDoc(doc).filter((i) => i.level === 'error');
 check('không lỗi validate', errors.length === 0, errors);
 check('gói nhỏ hơn JSON thô', full!.docPacked.length < JSON.stringify(doc).length);
+
+const sweetDoc = unpackDoc(sweet!.docPacked);
+const sweetErrors = validateDoc(sweetDoc).filter((i) => i.level === 'error');
+check('mẫu Ngọt ngào không lỗi validate', sweetErrors.length === 0, sweetErrors);
+check(
+  'mẫu Ngọt ngào có bì thư mở màn',
+  Object.values(sweetDoc.nodes).some((n) => n.type === 'Envelope'),
+  Object.values(sweetDoc.nodes).map((n) => n.type),
+);
 
 console.log('3. token');
 const tokens = collectTokens(doc);

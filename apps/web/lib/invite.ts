@@ -24,6 +24,7 @@ function party(v: unknown): PartyInfo {
   return {
     fullName: str(p.fullName),
     shortName: str(p.shortName, 60),
+    birthday: str(p.birthday, 40),
     father: str(p.father),
     mother: str(p.mother),
     address: str(p.address),

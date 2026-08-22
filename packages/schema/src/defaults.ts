@@ -92,6 +92,20 @@ export const NODE_DEFAULTS: DefaultsMap = {
     flipY: false,
   }),
 
+  Envelope: () => ({
+    ...baseProps({ width: 430, height: 287 }),
+    imgKey: '',
+    slot: null,
+    sealImg: '',
+    envelopeColor: '#812927',
+    flapColor: '#812927',
+    pocketSideColor: '#a33f3d',
+    pocketBottomColor: '#a84644',
+    heartColor: '#d00000',
+    lockScrollUntilOpened: true,
+    dismissAfter: 3.4,
+  }),
+
   Calendar: () => ({
     ...baseProps({ width: 460, height: 320 }),
     month: new Date().toISOString(),
@@ -202,7 +216,7 @@ export const NODE_DEFAULTS: DefaultsMap = {
 };
 
 const NODE_LABEL: Record<NodeType, string> = {
-  Text: 'Văn bản', Photo: 'Ảnh', Shape: 'Hoạ tiết',
+  Text: 'Văn bản', Photo: 'Ảnh', Shape: 'Hoạ tiết', Envelope: 'Bì thư',
   Calendar: 'Lịch', CountDown: 'Đếm ngược', RsvpForm: 'Form xác nhận',
   Gallery: 'Album', GiftQr: 'Mừng cưới', Map: 'Chỉ đường',
   Wishes: 'Lưu bút', Video: 'Video',

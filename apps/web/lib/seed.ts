@@ -16,6 +16,7 @@ import { randomBytes } from 'node:crypto';
 import { hashPassword } from './auth';
 import { buildSeedAssets, SEED_KEYS } from './seed-assets';
 import { fullTemplate, CEREMONY_DAY } from './seed-template';
+import { sweetTemplate } from './seed-template-42';
 
 /**
  * Tài khoản khởi tạo.
@@ -124,12 +125,12 @@ export function demoTemplate(): TemplateDoc {
 function demoInviteData(): InviteData {
   return {
     groom: {
-      fullName: 'Trần Minh Quân', shortName: 'Quân',
+      fullName: 'Trần Minh Quân', shortName: 'Quân', birthday: '05 / 08 / 1995',
       father: 'Trần Văn Hùng', mother: 'Lê Thị Hoa',
       address: 'Trung Hoà - Cầu Giấy - Hà Nội',
     },
     bride: {
-      fullName: 'Phạm Ngọc Lan', shortName: 'Lan',
+      fullName: 'Phạm Ngọc Lan', shortName: 'Lan', birthday: '12 / 05 / 2000',
       father: 'Phạm Đức Thắng', mother: 'Vũ Thị Bình',
       address: 'Thạch Thang - Hải Châu - Đà Nẵng',
     },
@@ -168,6 +169,12 @@ function demoInviteData(): InviteData {
       couple: SEED_KEYS.couple,
       groom: SEED_KEYS.groom,
       bride: SEED_KEYS.bride,
+      album1: SEED_KEYS.album[0]!,
+      album2: SEED_KEYS.album[1]!,
+      album3: SEED_KEYS.album[2]!,
+      album4: SEED_KEYS.album[3]!,
+      qrGroom: SEED_KEYS.qrGroom,
+      qrBride: SEED_KEYS.qrBride,
     },
     accounts: [
       {
@@ -189,6 +196,7 @@ function demoInviteData(): InviteData {
 export async function seedDatabase(): Promise<Database> {
   const basic = demoTemplate();
   const full = fullTemplate();
+  const sweet = sweetTemplate();
   const assets = await buildSeedAssets(SEED_USER_ID);
   const now = new Date().toISOString();
 
@@ -205,14 +213,14 @@ export async function seedDatabase(): Promise<Database> {
     ],
     sessions: [],
     assets: assets.map((a) => ({ ...a.row, createdAt: now })),
-    templates: [basic, full].map((doc) => ({
+    templates: [basic, full, sweet].map((doc) => ({
       id: doc.id,
       slug: doc.slug,
       name: doc.name,
       ownerId: SEED_USER_ID,
       docPacked: packDoc(doc),
       thumbnail: null,
-      usageCount: doc.id === full.id ? 1 : 0,
+      usageCount: doc.id === sweet.id ? 1 : 0,
       revision: 1,
     })),
     invites: [
@@ -220,7 +228,7 @@ export async function seedDatabase(): Promise<Database> {
         id: 'inv-quan-lan',
         slug: 'quan-lan',
         ownerId: SEED_USER_ID,
-        templateId: full.id,
+        templateId: sweet.id,
         data: demoInviteData(),
         publishedAt: now,
       },

@@ -50,9 +50,24 @@ const TYPE_FIELDS: Partial<Record<NodeType, Field[]>> = {
     { kind: 'check', key: 'flipY', label: 'Lật dọc' },
   ],
   Shape: [
-    { kind: 'select', key: 'shapeKind', label: 'Loại', options: [['svg', 'SVG'], ['img', 'Ảnh']] },
+    {
+      kind: 'select', key: 'shapeKind', label: 'Loại',
+      options: [['rect', 'Khối màu'], ['svg', 'SVG'], ['img', 'Ảnh']],
+    },
     { kind: 'image', key: 'imgKey', label: 'File' },
     { kind: 'color', key: 'color', label: 'Màu' },
+  ],
+  Envelope: [
+    { kind: 'image', key: 'imgKey', label: 'Ảnh lá thư' },
+    { kind: 'text', key: 'slot', label: 'Slot' },
+    { kind: 'image', key: 'sealImg', label: 'Dấu xi' },
+    { kind: 'color', key: 'envelopeColor', label: 'Màu bì' },
+    { kind: 'color', key: 'flapColor', label: 'Màu nắp' },
+    { kind: 'color', key: 'pocketSideColor', label: 'Màu cánh bên' },
+    { kind: 'color', key: 'pocketBottomColor', label: 'Màu cánh đáy' },
+    { kind: 'color', key: 'heartColor', label: 'Màu tim' },
+    { kind: 'check', key: 'lockScrollUntilOpened', label: 'Khoá cuộn tới khi mở' },
+    { kind: 'number', key: 'dismissAfter', label: 'Giây rồi ẩn', step: 0.1 },
   ],
   Calendar: [
     { kind: 'text', key: 'month', label: 'Tháng (ISO)' },

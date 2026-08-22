@@ -18,12 +18,12 @@ const DEMO_DAY = '2027-03-14T07:00:00.000Z';
 export function placeholderInviteData(): InviteData {
   return {
     groom: {
-      fullName: 'Nguyễn Anh Tuấn', shortName: 'Anh Tuấn',
+      fullName: 'Nguyễn Anh Tuấn', shortName: 'Anh Tuấn', birthday: '05 / 08 / 1995',
       father: 'Nguyễn Văn A', mother: 'Trần Thị B',
       address: 'Ba Đình - Hà Nội',
     },
     bride: {
-      fullName: 'Lê Thị Mai Anh', shortName: 'Mai Anh',
+      fullName: 'Lê Thị Mai Anh', shortName: 'Mai Anh', birthday: '12 / 05 / 2000',
       father: 'Lê Văn C', mother: 'Phạm Thị D',
       address: 'Hoàn Kiếm - Hà Nội',
     },

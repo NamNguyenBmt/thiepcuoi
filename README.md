@@ -57,11 +57,18 @@ khách ──GET /thiep/[slug]──►  template + InviteData ──► CanvasR
 
 ## Trạng thái
 
-Đã có: schema đầy đủ 11 loại node, renderer SSR-safe, editor kéo thả với
+Đã có: schema đầy đủ 12 loại node, renderer SSR-safe, editor kéo thả với
 undo/redo và snap, trang thiệp + API RSVP/lưu bút, lưu mẫu từ editor có chống
 ghi đè bằng `revision`, thư viện ảnh (upload + phục vụ kèm crop/resize/webp),
 đăng nhập + đăng ký + phân quyền theo chủ sở hữu, tạo mẫu/thiệp và phát hành từ
 giao diện, lưu trữ trên Postgres.
+
+Ba mẫu mồi: **Cơ bản** (ví dụ tối giản), **Trọn vẹn** (đủ mọi loại node), và
+**Ngọt ngào** — bản dựng kỹ nhất, tông hồng phấn, mở bằng bì thư có dấu xi và
+khoá cuộn cho tới khi khách chạm mở. Thiệp mồi dùng mẫu này. Hoạ tiết của nó
+(xe hoa, ly champagne, dấu song hỷ, vòng nét đứt…) vẽ bằng SVG trong
+`apps/web/lib/seed-decor.ts` rồi rasterise lúc seed, nên repo không có file ảnh
+nhị phân nào.
 
 Tài khoản đầu tiên do seed tạo, mật khẩu ngẫu nhiên in ra log server một lần.
 Đổi bằng: `npm run passwd -- <email> --prefix apps/web`.

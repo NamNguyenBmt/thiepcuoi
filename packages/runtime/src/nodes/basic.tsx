@@ -103,7 +103,15 @@ export function PhotoNode({ node }: NodeProps<'Photo'>) {
 export function ShapeNode({ node }: NodeProps<'Shape'>) {
   const { assetBase, dpr, scale } = useRuntime();
   const p = node.props;
-  const src = imageUrl(assetBase, p.imgKey, p.width * scale, dpr, p.shapeKind === 'svg' ? { format: 'auto' } : {});
+
+  // 'rect' không có file: khối màu / khung viền vẽ hết bằng baseStyle của
+  // NodeShell (backgroundColor, border, borderRadius). Phần lớn hoạ tiết hình
+  // học trong một mẫu thiệp là loại này — bắt chúng đi qua một file SVG chỉ để
+  // vẽ hình chữ nhật là thêm một request và một chỗ hỏng cho mỗi khối màu.
+  const src =
+    p.shapeKind === 'rect'
+      ? ''
+      : imageUrl(assetBase, p.imgKey, p.width * scale, dpr, p.shapeKind === 'svg' ? { format: 'auto' } : {});
 
   // SVG hoạ tiết được tô lại bằng mask để một file dùng được cho mọi bảng màu
   const inner: CSSProperties =

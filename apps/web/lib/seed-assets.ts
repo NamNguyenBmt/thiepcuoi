@@ -13,6 +13,10 @@
 import sharp from 'sharp';
 import { getBlobStore } from './blobstore';
 import type { AssetRow } from './db';
+import {
+  champagneSvg, circleMaskSvg, coupleFigureSvg, dashedRingSvg, doubleHappinessSvg,
+  floatingHeartsSvg, handsHeartSvg, heartSvg, sparkleCircleSvg, waxSealSvg, weddingCarSvg,
+} from './seed-decor';
 
 export interface SeedAsset {
   row: Omit<AssetRow, 'createdAt'>;
@@ -155,6 +159,26 @@ function specs(): Spec[] {
     { id: FIXED_ID(22), svg: qrSvg(600, 'CÔ DÂU'), name: 'placeholder-qr-co-dau.png', mime: 'image/png' },
     { id: FIXED_ID(23), svg: giftIconSvg(200), name: 'placeholder-icon-qua.png', mime: 'image/png' },
   );
+
+  // Hoạ tiết trang trí — luôn PNG vì có vùng trong suốt (xem seed-decor.ts)
+  const decor: Array<[number, string, string]> = [
+    [30, sparkleCircleSvg(), 'deco-vong-lap-lanh.png'],
+    [31, floatingHeartsSvg(), 'deco-tim-bay.png'],
+    [32, doubleHappinessSvg(), 'deco-song-hy.png'],
+    [33, weddingCarSvg(), 'deco-xe-hoa.png'],
+    [34, champagneSvg(), 'deco-ly-champagne.png'],
+    [35, handsHeartSvg(), 'deco-tay-om-tim.png'],
+    [36, coupleFigureSvg(), 'deco-co-dau-chu-re.png'],
+    [37, waxSealSvg(), 'deco-dau-xi.png'],
+    [38, dashedRingSvg(), 'deco-vong-net-dut.png'],
+    [39, circleMaskSvg(), 'mask-tron.png'],
+    [40, heartSvg('#d9484f'), 'deco-tim-do.png'],
+    [41, heartSvg('#e49696'), 'deco-tim-hong.png'],
+  ];
+  for (const [n, svg, name] of decor) {
+    list.push({ id: FIXED_ID(n), svg, name, mime: 'image/png' });
+  }
+
   return list;
 }
 
@@ -168,6 +192,19 @@ export const SEED_KEYS = {
   qrGroom: `uploads/${FIXED_ID(21)}.png`,
   qrBride: `uploads/${FIXED_ID(22)}.png`,
   giftIcon: `uploads/${FIXED_ID(23)}.png`,
+
+  sparkle: `uploads/${FIXED_ID(30)}.png`,
+  hearts: `uploads/${FIXED_ID(31)}.png`,
+  doubleHappiness: `uploads/${FIXED_ID(32)}.png`,
+  car: `uploads/${FIXED_ID(33)}.png`,
+  champagne: `uploads/${FIXED_ID(34)}.png`,
+  handsHeart: `uploads/${FIXED_ID(35)}.png`,
+  coupleFigure: `uploads/${FIXED_ID(36)}.png`,
+  waxSeal: `uploads/${FIXED_ID(37)}.png`,
+  dashedRing: `uploads/${FIXED_ID(38)}.png`,
+  circleMask: `uploads/${FIXED_ID(39)}.png`,
+  heart: `uploads/${FIXED_ID(40)}.png`,
+  heartRose: `uploads/${FIXED_ID(41)}.png`,
 } as const;
 
 /**

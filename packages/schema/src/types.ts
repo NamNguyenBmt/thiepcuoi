@@ -128,12 +128,40 @@ export interface PhotoProps extends BaseProps {
 }
 
 export interface ShapeProps extends BaseProps {
-  /** svg: tô lại theo `color`; img: dùng nguyên bản */
-  shapeKind: 'svg' | 'img';
+  /** rect: khối màu thuần, không cần file; svg: tô lại theo `color`; img: dùng nguyên bản */
+  shapeKind: 'rect' | 'svg' | 'img';
   imgKey: AssetKey;
   color: string;
   flipX: boolean;
   flipY: boolean;
+}
+
+/**
+ * Bì thư mở được — màn chào của thiệp.
+ *
+ * Hình khối dựng bằng CSS chứ không phải ảnh: nắp và hai cánh bì là ba tam giác
+ * `border`, nên đổi màu là đổi cả bộ, và bì co giãn theo `width`/`height` mà
+ * không có ảnh nào bị kéo méo.
+ */
+export interface EnvelopeProps extends BaseProps {
+  /** Ảnh lá thư trồi lên khi khách mở bì */
+  imgKey: AssetKey;
+  /** Slot binding như PhotoProps.slot */
+  slot: string | null;
+  /** Dấu xi gắn giữa nắp bì (PNG có alpha) */
+  sealImg: AssetKey;
+  envelopeColor: string;
+  flapColor: string;
+  pocketSideColor: string;
+  pocketBottomColor: string;
+  heartColor: string;
+  /**
+   * Khoá cuộn cho tới khi bì được mở. Đây là điểm khác biệt của màn chào: nếu
+   * cuộn được ngay thì khách lướt thẳng qua và không ai chạm vào bì cả.
+   */
+  lockScrollUntilOpened: boolean;
+  /** Giây chờ trước khi bì mờ đi nhường chỗ cho bìa thiệp. 0 = ở lại */
+  dismissAfter: number;
 }
 
 export interface CalendarProps extends BaseProps {
@@ -263,7 +291,7 @@ export interface VideoProps extends BaseProps {
 // ─────────────────────────── Node union ───────────────────────────
 
 export type NodeType =
-  | 'Text' | 'Photo' | 'Shape'
+  | 'Text' | 'Photo' | 'Shape' | 'Envelope'
   | 'Calendar' | 'CountDown' | 'RsvpForm'
   | 'Gallery' | 'GiftQr' | 'Map' | 'Wishes' | 'Video';
 
@@ -280,6 +308,7 @@ export type TemplateNode =
   | NodeBase<'Text', TextProps>
   | NodeBase<'Photo', PhotoProps>
   | NodeBase<'Shape', ShapeProps>
+  | NodeBase<'Envelope', EnvelopeProps>
   | NodeBase<'Calendar', CalendarProps>
   | NodeBase<'CountDown', CountDownProps>
   | NodeBase<'RsvpForm', RsvpFormProps>
@@ -368,6 +397,8 @@ export interface InviteData {
 export interface PartyInfo {
   fullName: string;
   shortName: string;
+  /** Ngày sinh dạng chữ ("12/05/2000") — mẫu "About us" in nguyên văn */
+  birthday: string;
   father: string;
   mother: string;
   address: string;
