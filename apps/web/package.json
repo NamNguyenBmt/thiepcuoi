@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "next build",
+    "build": "npm run build --prefix ../editor && next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit",
     "test": "tsx test/api.test.mts",

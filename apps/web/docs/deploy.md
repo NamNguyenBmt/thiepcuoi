@@ -24,6 +24,12 @@ cd .next/standalone/apps/web && node server.js               # PORT, HOSTNAME đ
 
 Ba chỗ dễ sai đã xử lý sẵn:
 
+- **Editor phải cùng origin với API.** `npm run build` của web build luôn
+  `apps/editor` vào `public/editor/`, và đặt `NEXT_PUBLIC_EDITOR_URL=/editor`.
+  Editor gọi `/api` bằng đường dẫn tương đối rồi dựa vào cookie phiên — deploy
+  nó sang domain khác là vừa gọi trượt API vừa mất luôn đăng nhập. Bỏ trống biến
+  này thì các nút "mở trong editor" trỏ về `localhost:5173`, tức là chỉ chạy trên
+  máy người dev, còn khách bấm vào thì gặp lỗi kết nối.
 - **`lib/schema.sql` đọc bằng fs lúc chạy.** Next chỉ trace file JS, nên phải khai
   `outputFileTracingIncludes` — không thì bản standalone thiếu file và app chết
   ngay lúc migrate.

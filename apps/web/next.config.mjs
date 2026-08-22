@@ -27,6 +27,14 @@ export default {
   outputFileTracingRoot: r('../../'),
   // Native + WASM: để Next bundle vào là hỏng (sharp có .node, pglite có .wasm)
   serverExternalPackages: ['sharp', 'pg', '@electric-sql/pglite'],
+  /**
+   * Editor là bản Vite build sẵn nằm trong `public/editor/`. File tĩnh không có
+   * "index của thư mục", nên `/editor` trần sẽ 404 — mà đó lại đúng là đường
+   * dẫn các nút "mở trong editor" trỏ tới.
+   */
+  async rewrites() {
+    return [{ source: '/editor', destination: '/editor/index.html' }];
+  },
   transpilePackages: ['@thiepcuoi/schema', '@thiepcuoi/runtime'],
   webpack: (config, { isServer }) => {
     config.resolve.alias['@thiepcuoi/schema'] = r('../../packages/schema/src/index.ts');

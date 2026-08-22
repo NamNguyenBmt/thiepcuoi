@@ -6,8 +6,13 @@ Editor kéo thả cho template thiệp cưới. Đọc/ghi `TemplateDoc` của
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # tsc --noEmit && vite build
+npm run build      # tsc --noEmit && vite build → apps/web/public/editor
 ```
+
+Bản build đi thẳng vào `public/` của web và được phục vụ ở `/editor`, tức là
+**cùng origin với API** — bắt buộc, vì editor gọi `/api` bằng đường dẫn tương
+đối và dựa vào cookie phiên. `npm run build` của web tự chạy bước này, không
+phải build tay.
 
 ```
 src/store/history.ts     undo/redo bằng patch của immer + gộp thao tác

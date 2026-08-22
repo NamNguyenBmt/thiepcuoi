@@ -8,8 +8,22 @@ import { fileURLToPath } from 'node:url';
  */
 const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react()],
+  /**
+   * Bản build đi thẳng vào `public/` của web và được phục vụ ở `/editor` —
+   * **cùng origin với API**. Đó là điều kiện bắt buộc chứ không phải tiện tay:
+   * editor gọi `/api` bằng đường dẫn tương đối và dựa vào cookie phiên, nên
+   * deploy nó sang domain khác là vừa gọi trượt API vừa mất luôn đăng nhập.
+   *
+   * `base` chỉ đổi lúc build; `npm run dev` vẫn chạy ở gốc cổng 5173 như cũ.
+   */
+  base: command === 'build' ? '/editor/' : '/',
+  build: {
+    outDir: r('../web/public/editor'),
+    // outDir nằm ngoài thư mục gốc của editor nên Vite bắt khai báo tường minh
+    emptyOutDir: true,
+  },
   resolve: {
     alias: {
       '@thiepcuoi/schema': r('../../packages/schema/src/index.ts'),
@@ -22,4 +36,4 @@ export default defineConfig({
     // thì đường dẫn /api trong code vẫn đúng nguyên.
     proxy: { '/api': { target: 'http://localhost:3000', changeOrigin: true } },
   },
-});
+}));

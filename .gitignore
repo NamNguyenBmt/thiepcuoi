@@ -8,6 +8,8 @@ node_modules
 dist
 **/dist
 apps/editor/dist
+# Editor build ra đây lúc build web, không commit
+apps/web/public/editor
 *.tsbuildinfo
 **/*.tsbuildinfo
 
