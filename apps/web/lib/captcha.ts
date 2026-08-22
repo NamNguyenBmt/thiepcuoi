@@ -15,13 +15,24 @@ import { createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto
 const TTL_MS = 5 * 60_000;
 
 /**
- * Không đặt CAPTCHA_SECRET thì mỗi tiến trình tự sinh secret riêng — đủ dùng vì
- * thử thách chỉ sống vài phút trong một phiên làm form. Production nhiều
- * instance mà instance sinh thử thách khác instance verify thì cần đặt secret
- * dùng chung, nếu không một phần yêu cầu sẽ bị từ chối oan (không phải lỗ hổng,
- * chỉ là trải nghiệm xấu — xem README).
+ * Secret và sổ token đã dùng, treo trên `globalThis` để cả tiến trình xài chung.
+ *
+ * Không để làm biến module được: Next đóng gói mỗi route thành một bundle riêng,
+ * nên cùng file này bị nạp thành **nhiều bản** trong một tiến trình (dev còn
+ * nạp lại sau mỗi lần hot-reload). Mỗi bản tự sinh secret riêng thì token ký ở
+ * `/api/captcha` không đời nào verify nổi ở `/api/auth/register` — người dùng
+ * giải đúng vẫn bị báo sai, tức là **không đăng ký được**. Đã dính thật ở bản
+ * chạy local, nơi CAPTCHA_SECRET không được đặt.
+ *
+ * Đặt CAPTCHA_SECRET thì mọi bản nạp — và mọi instance — dùng chung một secret;
+ * đó cũng là điều bắt buộc khi chạy nhiều instance (xem README).
  */
-const SECRET = process.env.CAPTCHA_SECRET ?? randomBytes(32).toString('hex');
+const kho = globalThis as typeof globalThis & {
+  __tcCaptcha?: { secret: string; used: Map<string, number> };
+};
+kho.__tcCaptcha ??= { secret: randomBytes(32).toString('hex'), used: new Map() };
+
+const SECRET = process.env.CAPTCHA_SECRET ?? kho.__tcCaptcha.secret;
 
 const sign = (payload: string): string => createHmac('sha256', SECRET).update(payload).digest('hex');
 
@@ -75,8 +86,13 @@ function decode(token: string): Decoded | null {
  * Token đã dùng đúng một lần thì không cho dùng lại — giải được một thử thách
  * rồi gửi lại token đó nhiều lần sẽ né được cả rate limit lẫn việc phải giải
  * lại. Dọn định kỳ như `buckets` của ratelimit.ts để Map không phình vô hạn.
+ *
+ * Cũng nằm trên `globalThis` vì lý do như secret: mỗi bản nạp một sổ riêng thì
+ * token dùng rồi vẫn qua được ở bản khác, tức là chặn dùng lại chỉ có tiếng.
+ * Nhiều instance thì vẫn mỗi instance một sổ — đó là giới hạn cố hữu, và cũng
+ * chỉ là lớp phòng thủ phụ bên cạnh rate limit.
  */
-const used = new Map<string, number>();
+const used = kho.__tcCaptcha.used;
 
 function cleanupUsed(now: number): void {
   if (used.size <= 5000) return;

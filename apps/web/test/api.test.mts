@@ -368,6 +368,20 @@ const [a3, b3] = het.question.split(' + ').map(Number) as [number, number];
 check('token het han thi truot', !verifyCaptcha(het.token, String(a3 + b3)));
 
 check('token khong doc duoc (khong phai base64) thi truot', !verifyCaptcha('!!!khong-hop-le!!!', '5'));
+
+/**
+ * Next đóng gói mỗi route riêng nên cùng file captcha.ts bị nạp thành nhiều
+ * bản trong một tiến trình. Query string làm Node nạp thêm một bản mới, đúng
+ * như /api/captcha và /api/auth/register nhìn thấy nhau.
+ */
+const banKhac = await import('../lib/captcha?ban-nap-thu-hai');
+const cheo = createCaptcha();
+const [a4, b4] = cheo.question.split(' + ').map(Number) as [number, number];
+check(
+  'token ky o ban nap nay verify duoc o ban nap khac',
+  banKhac.verifyCaptcha(cheo.token, String(a4 + b4)),
+);
+check('sổ token đã dùng cũng chung giữa các bản nạp', !verifyCaptcha(cheo.token, String(a4 + b4)));
 check('thieu answer thi truot', !verifyCaptcha(c2.token, ''));
 check('token khong phai chuoi thi truot', !verifyCaptcha(undefined, '5'));
 
