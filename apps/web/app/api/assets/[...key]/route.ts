@@ -33,7 +33,15 @@ export async function GET(request: Request, { params }: Params) {
       headers: {
         'content-type': mime,
         'content-length': String(body.length),
-        'cache-control': 'public, max-age=31536000, immutable',
+        /**
+         * `s-maxage` là phần bắt buộc để CDN chịu giữ bản sao — chỉ `max-age`
+         * thì mỗi trình duyệt tự cache riêng, còn CDN vẫn gọi ngược về hàm và
+         * bắt sharp resize lại tấm ảnh đó từ đầu cho từng khách mời.
+         *
+         * An toàn để giữ vĩnh viễn vì key là uuid do server sinh và ảnh đã lưu
+         * thì không bao giờ đổi nội dung — sửa ảnh là sinh key mới.
+         */
+        'cache-control': 'public, max-age=31536000, s-maxage=31536000, immutable',
       },
     });
   } catch (err) {

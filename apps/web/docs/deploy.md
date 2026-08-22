@@ -60,6 +60,23 @@ Ba chỗ dễ sai đã xử lý sẵn:
 - [ ] Ảnh hiện đúng (nếu vừa đổi kho, ảnh vỡ nghĩa là quên bước 3)
 - [ ] Có backup database — thiệp cưới thì mất dữ liệu là mất thật
 
+## Đặt hàm cùng chỗ với database
+
+**Region của hàm phải trùng region của database.** Mỗi trang gọi database vài
+lần liên tiếp, nên khoảng cách giữa hai nơi đó bị nhân lên chứ không cộng vào.
+
+Lần deploy đầu dính đúng lỗi này: Supabase ở Seoul (`ap-northeast-2`) còn hàm
+chạy mặc định ở `iad1` (Washington DC). Đọc `x-vercel-id` thấy rõ đường đi —
+`hkg1::iad1::…`, tức là khách ở Việt Nam vào edge Hồng Kông rồi bay sang Mỹ để
+chạy hàm, từ Mỹ lại hỏi ngược database ở Hàn. Một câu `select count(*)` mất
+**187 ms**, và cold start chạy 14 câu DDL của `schema.sql` mất thêm ~2,5 giây.
+
+Trên Vercel: **Settings → Functions → Function Region → Seoul (icn1)**. Gói
+Hobby chỉ chọn được một region, và phải deploy lại thì mới có hiệu lực. Kiểm
+lại bằng `x-vercel-id`, phần giữa phải là `icn1`.
+
+Đổi database sang nhà cung cấp khác thì nhớ chỉnh lại region cho khớp.
+
 ## Điều còn giới hạn
 
 **Rate limit mặc định đếm trong bộ nhớ tiến trình.** Một instance thì đúng như
