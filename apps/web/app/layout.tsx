@@ -12,7 +12,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body
         style={{
           margin: 0,
-          background: '#eceff1',
+          background: '#faf7f6',
           fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
           color: '#1f2328',
         }}
