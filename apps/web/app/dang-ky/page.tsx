@@ -1,9 +1,14 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+
+interface CaptchaState {
+  question: string;
+  token: string;
+}
 
 export default function RegisterPage() {
   // useSearchParams cần Suspense bao ngoài, nếu không Next bắt lỗi lúc build
@@ -22,8 +27,25 @@ function RegisterForm() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [captcha, setCaptcha] = useState<CaptchaState | null>(null);
+  const [captchaAnswer, setCaptchaAnswer] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  async function loadCaptcha() {
+    try {
+      const res = await fetch('/api/captcha');
+      const body = await res.json().catch(() => null);
+      if (res.ok && body) setCaptcha(body);
+    } catch {
+      // Mất mạng thì để nguyên captcha cũ (nếu có) — nút Đăng ký vẫn tự vô hiệu
+      // khi chưa có captcha nào cả.
+    }
+  }
+
+  useEffect(() => {
+    loadCaptcha();
+  }, []);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -33,11 +55,21 @@ function RegisterForm() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          captchaToken: captcha?.token,
+          captchaAnswer,
+        }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok) {
         setError(body?.error ?? `Lỗi ${res.status}`);
+        // Token cũ đã hết hạn hoặc đã bị dùng (dù đúng hay sai) — xin cái mới
+        // luôn, không để người dùng thử lại với token chắc chắn sẽ hỏng.
+        setCaptchaAnswer('');
+        await loadCaptcha();
         return;
       }
       router.replace(next);
@@ -104,9 +136,24 @@ function RegisterForm() {
           style={field}
         />
 
+        <label style={label} htmlFor="captcha">
+          {captcha ? `Xác nhận không phải robot: ${captcha.question} = ?` : 'Đang tải câu hỏi xác nhận…'}
+        </label>
+        <input
+          id="captcha"
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
+          value={captchaAnswer}
+          onChange={(e) => setCaptchaAnswer(e.target.value)}
+          disabled={!captcha}
+          required
+          style={field}
+        />
+
         {error && <div style={{ color: '#b42318', fontSize: 13, marginBottom: 10 }}>{error}</div>}
 
-        <button type="submit" disabled={busy} style={submit}>
+        <button type="submit" disabled={busy || !captcha} style={submit}>
           {busy ? 'Đang tạo…' : 'Đăng ký'}
         </button>
 

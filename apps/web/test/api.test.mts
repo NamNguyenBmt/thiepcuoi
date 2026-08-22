@@ -344,5 +344,31 @@ if (!isRegisterError(validInput)) {
   check('email trung bi rang buoc unique chan', trung);
 }
 
+console.log('16. captcha tu host');
+const { createCaptcha, verifyCaptcha, resetCaptchaState } = await import('../lib/captcha');
+resetCaptchaState();
+
+const c1 = createCaptcha();
+check('cau hoi dang "so + so"', /^\d+ \+ \d+$/.test(c1.question), c1.question);
+const [a1, b1] = c1.question.split(' + ').map(Number) as [number, number];
+const dungC1 = String(a1 + b1);
+
+check('tra loi sai thi truot', !verifyCaptcha(c1.token, String(a1 + b1 + 1)));
+check('tra loi dung thi qua', verifyCaptcha(c1.token, dungC1));
+check('dung lai token da dung thi truot (chan replay)', !verifyCaptcha(c1.token, dungC1));
+
+const c2 = createCaptcha();
+const bitCuoi = c2.token.slice(-1);
+const badToken = c2.token.slice(0, -1) + (bitCuoi === 'A' ? 'B' : 'A');
+check('token bi sua chu ky thi truot', !verifyCaptcha(badToken, '0'));
+
+const het = createCaptcha(-1); // het han ngay luc sinh
+const [a3, b3] = het.question.split(' + ').map(Number) as [number, number];
+check('token het han thi truot', !verifyCaptcha(het.token, String(a3 + b3)));
+
+check('token khong doc duoc (khong phai base64) thi truot', !verifyCaptcha('!!!khong-hop-le!!!', '5'));
+check('thieu answer thi truot', !verifyCaptcha(c2.token, ''));
+check('token khong phai chuoi thi truot', !verifyCaptcha(undefined, '5'));
+
 console.log(failed === 0 ? '\nPASS' : `\n${failed} FAILED`);
 process.exit(failed === 0 ? 0 : 1);

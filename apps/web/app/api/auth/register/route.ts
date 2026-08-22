@@ -3,6 +3,7 @@ import { createUser, getUserByEmail } from '@/lib/db';
 import { hashPassword, publicUser, startSession } from '@/lib/auth';
 import { clientKey, rateLimit } from '@/lib/ratelimit';
 import { isRegisterError, parseRegisterInput } from '@/lib/register';
+import { verifyCaptcha } from '@/lib/captcha';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -23,6 +24,13 @@ export async function POST(request: Request) {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'JSON không hợp lệ' }, { status: 400 });
+  }
+
+  const b = (body ?? {}) as Record<string, unknown>;
+  // Kiểm captcha trước khi đụng tới DB: giải sai/hết hạn thì khỏi tốn một
+  // lượt tra email trùng cho mỗi bot thử.
+  if (!verifyCaptcha(b.captchaToken, b.captchaAnswer)) {
+    return NextResponse.json({ error: 'Xác nhận chống spam sai hoặc đã hết hạn, thử lại' }, { status: 400 });
   }
 
   const parsed = parseRegisterInput(body);

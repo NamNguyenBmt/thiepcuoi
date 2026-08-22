@@ -29,6 +29,7 @@ npm run build
 | `GET /api/templates/[id]` | Một mẫu, kèm `docPacked` + `revision` |
 | `PUT /api/templates/[id]` | Editor lưu mẫu |
 | `GET/POST /api/assets` | Thư viện ảnh: liệt kê / tải lên |
+| `GET /api/captcha` | Câu hỏi "không phải robot" cho form đăng ký |
 | `GET /api/assets/[...key]` | Phục vụ ảnh kèm crop/resize/format/quality |
 | `GET /api/health` | Chạm thật vào database + kho ảnh; 200/503 |
 | `POST /api/auth/login` · `logout` · `GET me` | Phiên đăng nhập |
@@ -137,6 +138,16 @@ Giới hạn 5 lần/giờ theo IP, kiểm dữ liệu ở `lib/register.ts` (em
 dạng, mật khẩu ≥ 8 ký tự). Email trùng trả 409 kèm thông báo rõ ràng — không áp
 dụng kiểu "thông báo chung chung" như đăng nhập, vì ở đây người dùng cần biết để
 chuyển sang đăng nhập thay vì thử lại.
+
+**Captcha tự host, không qua dịch vụ ngoài** (`lib/captcha.ts`). `GET
+/api/captcha` sinh một phép cộng, ký bằng HMAC kèm hạn dùng 5 phút — toàn bộ
+trạng thái nằm trong token trả về client, không cần bảng hay cache dùng chung.
+Token dùng đúng một lần (chặn gửi lại câu trả lời đúng nhiều lần). Yếu hơn
+hCaptcha/Turnstile trước bot có script nhắm riêng vào form này, nhưng không cần
+tài khoản dịch vụ nào và chạy offline được — cùng lựa chọn với PGlite/scrypt.
+Nhiều instance production muốn các instance xác minh được token của nhau thì
+đặt `CAPTCHA_SECRET` dùng chung; không đặt thì mỗi tiến trình tự sinh secret
+riêng, đủ dùng cho một instance hoặc dev.
 
 ## Ảnh
 
