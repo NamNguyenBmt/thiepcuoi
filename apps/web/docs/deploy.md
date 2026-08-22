@@ -56,9 +56,9 @@ Ba chỗ dễ sai đã xử lý sẵn:
 
 ## Điều còn giới hạn
 
-**Rate limit đếm trong bộ nhớ tiến trình.** Một instance thì đúng như cấu hình.
-Chạy nhiều instance hoặc serverless thì hạn mức thực tế nhân lên theo số
-instance — muốn chặt thì phải chuyển bộ đếm sang Redis.
+**Rate limit mặc định đếm trong bộ nhớ tiến trình.** Một instance thì đúng như
+cấu hình. Chạy nhiều instance hoặc serverless thì đặt `REDIS_URL` để các
+instance đếm chung — không đặt thì hạn mức thực tế nhân lên theo số instance.
 
 **Ảnh phục vụ qua chính app** (`/api/assets/...`) vì tham số resize/crop mới là
 thứ làm ảnh nhẹ đi. Đặt CDN trước đường dẫn đó là đủ, không phải sửa code.

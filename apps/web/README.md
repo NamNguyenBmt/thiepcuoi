@@ -109,14 +109,19 @@ Vài chi tiết cố ý:
   đã đăng nhập nhưng không phải của mình (hiện form là vô nghĩa).
 - **Sai mật khẩu và email không tồn tại trả cùng một thông báo.** Phân biệt hai
   trường hợp là tặng kẻ tấn công danh sách email có thật.
-- **Giới hạn tần suất theo IP:** đăng nhập 8 lần/phút; RSVP và lưu bút 6
-  lần/10 phút, mỗi loại một bộ đếm riêng (gửi RSVP không làm hết lượt lưu bút).
-  Khách mời không có tài khoản nên đây là lớp chặn duy nhất cho hai API đó.
+- **Giới hạn tần suất theo IP:** đăng nhập 8 lần/phút; đăng ký 5 lần/giờ; RSVP
+  và lưu bút 6 lần/10 phút, mỗi loại một bộ đếm riêng (gửi RSVP không làm hết
+  lượt lưu bút). Khách mời không có tài khoản nên đây là lớp chặn duy nhất cho
+  hai API đó.
 
-  Bộ đếm nằm trong bộ nhớ tiến trình. Một instance thì đúng như cấu hình (đã
-  kiểm trên bản production: 6 lượt qua, sau đó 429 kèm `retry-after`); chạy
-  nhiều instance thì hạn mức thực tế nhân lên theo số instance — lúc đó cần
-  Redis. Ở `next dev` bộ đếm còn reset mỗi lần hot-reload.
+  `lib/ratelimit.ts` chọn nơi đếm theo `REDIS_URL` — có thì dùng Redis (đúng
+  hạn mức dù chạy bao nhiêu instance), không có thì đếm trong bộ nhớ tiến
+  trình (mặc định, đã kiểm trên bản production: 6 lượt qua, sau đó 429 kèm
+  `retry-after`). Cả hai chạy chung một thuật toán sliding-window-log — Redis
+  dùng sorted set (`ZADD`/`ZREMRANGEBYSCORE`/`ZCARD`), giữ đúng ngữ nghĩa với
+  bản bộ nhớ. Một instance không Redis vẫn đúng như cấu hình; nhiều instance
+  mà không đặt `REDIS_URL` thì hạn mức thực tế nhân lên theo số instance. Ở
+  `next dev` bộ đếm bộ nhớ còn reset mỗi lần hot-reload.
 - **`/quan-ly` chặn ngay ở server.** Kiểm tra ở client thì dữ liệu đã kịp gửi
   xuống trước khi giao diện kịp giấu đi.
 

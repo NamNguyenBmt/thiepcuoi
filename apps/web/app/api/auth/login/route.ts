@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  const limit = rateLimit(clientKey(request, 'login'), 8, 60_000);
+  const limit = await rateLimit(clientKey(request, 'login'), 8, 60_000);
   if (!limit.ok) {
     return NextResponse.json(
       { error: `Thử quá nhiều lần, đợi ${limit.retryAfter}s` },

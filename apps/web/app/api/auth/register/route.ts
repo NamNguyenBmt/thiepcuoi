@@ -11,7 +11,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   // Lỏng hơn đăng nhập (8/phút): đăng ký là hành động một lần, cửa sổ dài hơn
   // vẫn chặn được tạo tài khoản hàng loạt mà không phiền người dùng thật.
-  const limit = rateLimit(clientKey(request, 'register'), 5, 3600_000);
+  const limit = await rateLimit(clientKey(request, 'register'), 5, 3600_000);
   if (!limit.ok) {
     return NextResponse.json(
       { error: `Đăng ký quá nhiều lần, đợi ${limit.retryAfter}s` },

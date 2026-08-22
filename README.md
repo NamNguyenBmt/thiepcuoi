@@ -66,8 +66,9 @@ giao diện, lưu trữ trên Postgres.
 Tài khoản đầu tiên do seed tạo, mật khẩu ngẫu nhiên in ra log server một lần.
 Đổi bằng: `npm run passwd -- <email> --prefix apps/web`.
 
-Chưa có: rate limit dùng chung nhiều instance. Dockerfile đã build và chạy
-thật (image 364 MB, health check xanh);
+Rate limit dùng chung nhiều instance: đặt `REDIS_URL` thì dùng, không đặt thì
+đếm trong bộ nhớ tiến trình (đúng cho một instance, đủ cho hầu hết bản deploy
+nhỏ). Dockerfile đã build và chạy thật (image 364 MB, health check xanh);
 quy trình deploy ở apps/web/docs/deploy.md. Chi tiết trong phần "Còn thiếu" của README từng package.
 
 ## Lưu trữ

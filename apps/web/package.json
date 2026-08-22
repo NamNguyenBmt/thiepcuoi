@@ -19,6 +19,7 @@
     "@electric-sql/pglite": "^0.5.5",
     "@thiepcuoi/runtime": "file:../../packages/runtime",
     "@thiepcuoi/schema": "file:../../packages/schema",
+    "ioredis": "^6.0.0",
     "next": "^15.1.0",
     "pg": "^8.23.0",
     "qrcode": "^1.5.4",

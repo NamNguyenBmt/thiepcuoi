@@ -29,7 +29,7 @@ export async function GET(_request: Request, { params }: Params) {
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
 
-  const limit = rateLimit(clientKey(request, 'heart'), MAX_PER_WINDOW, WINDOW_MS);
+  const limit = await rateLimit(clientKey(request, 'heart'), MAX_PER_WINDOW, WINDOW_MS);
   if (!limit.ok) {
     return NextResponse.json(
       { error: `Bạn bấm nhanh quá, thử lại sau ${limit.retryAfter}s nhé` },

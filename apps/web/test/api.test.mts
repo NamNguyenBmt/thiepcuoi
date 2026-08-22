@@ -189,13 +189,14 @@ check('nguoi khac khong sua duoc', !canEdit(other, 'b'));
 check('admin sua duoc cua nguoi khac', canEdit(admin, 'b'));
 
 resetRateLimits();
-const hits = Array.from({ length: 4 }, () => rateLimit('test-ip', 3, 60_000).ok);
+const hits: boolean[] = [];
+for (let i = 0; i < 4; i++) hits.push((await rateLimit('test-ip', 3, 60_000)).ok);
 check('chan sau khi vuot nguong', JSON.stringify(hits) === '[true,true,true,false]', hits);
-check('khoa khac khong bi anh huong', rateLimit('test-ip-2', 3, 60_000).ok);
-const blocked = rateLimit('test-ip', 3, 60_000);
+check('khoa khac khong bi anh huong', (await rateLimit('test-ip-2', 3, 60_000)).ok);
+const blocked = await rateLimit('test-ip', 3, 60_000);
 check('bao thoi gian cho', blocked.retryAfter > 0 && blocked.retryAfter <= 60, blocked);
 resetRateLimits();
-check('reset thi cho lai tu dau', rateLimit('test-ip', 3, 60_000).ok);
+check('reset thi cho lai tu dau', (await rateLimit('test-ip', 3, 60_000)).ok);
 
 console.log('10. slug');
 const { toSlug, uniqueSlug, validateSlug } = await import('../lib/slug');
@@ -414,6 +415,53 @@ await updateInvite(cyc.id, { slug: 'redir-x' }, 'redir-y');
 const backAndForth = await updateInvite(cyc.id, { slug: 'redir-z' }, 'redir-x');
 check('doi qua lai nhieu lan khong loi (on conflict)', backAndForth?.slug === 'redir-z', backAndForth);
 check('old_slug ghi de van tro dung invite', (await getSlugRedirectTarget('redir-x')) === cyc.id);
+
+console.log('18. rate limit pluggable (redis)');
+const { selectLimiterKind, createRedisLimiter } = await import('../lib/ratelimit');
+type RedisLikeT = Parameters<typeof createRedisLimiter>[0];
+
+check('khong co REDIS_URL thi chon memory', selectLimiterKind({} as NodeJS.ProcessEnv) === 'memory');
+check('co REDIS_URL thi chon redis', selectLimiterKind({ REDIS_URL: 'redis://x' } as NodeJS.ProcessEnv) === 'redis');
+
+/**
+ * Client giả trong bộ nhớ, chỉ cài đúng 5 lệnh của RedisLike — đủ để chứng
+ * minh thuật toán trong createRedisLimiter đúng mà không cần dựng Redis thật.
+ */
+function fakeRedis(): RedisLikeT {
+  const sets = new Map<string, Map<string, number>>();
+  const get = (key: string) => sets.get(key) ?? new Map<string, number>();
+
+  return {
+    zremrangebyscore: async (key, min, max) => {
+      const set = get(key);
+      for (const [member, score] of set) {
+        if (score >= min && score <= max) set.delete(member);
+      }
+      sets.set(key, set);
+    },
+    zcard: async (key) => get(key).size,
+    zadd: async (key, score, member) => {
+      const set = get(key);
+      set.set(member, score);
+      sets.set(key, set);
+    },
+    pexpire: async () => {},
+    oldestScore: async (key) => {
+      const set = get(key);
+      return set.size === 0 ? null : Math.min(...set.values());
+    },
+  };
+}
+
+const redisLimiter = createRedisLimiter(fakeRedis(), 'fake redis');
+check('mo ta dung nhu truyen vao', redisLimiter.describe() === 'fake redis');
+
+const redisHits: boolean[] = [];
+for (let i = 0; i < 4; i++) redisHits.push((await redisLimiter.hit('rk', 3, 60_000)).ok);
+check('redis: chan sau khi vuot nguong', JSON.stringify(redisHits) === '[true,true,true,false]', redisHits);
+check('redis: khoa khac khong bi anh huong', (await redisLimiter.hit('rk-2', 3, 60_000)).ok);
+const redisBlocked = await redisLimiter.hit('rk', 3, 60_000);
+check('redis: bao thoi gian cho', redisBlocked.retryAfter > 0 && redisBlocked.retryAfter <= 60, redisBlocked);
 
 console.log(failed === 0 ? '\nPASS' : `\n${failed} FAILED`);
 process.exit(failed === 0 ? 0 : 1);

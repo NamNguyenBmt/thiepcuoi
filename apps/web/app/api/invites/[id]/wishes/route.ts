@@ -18,8 +18,8 @@ type Params = { params: Promise<{ id: string }> };
 const WINDOW_MS = 10 * 60_000;
 const MAX_PER_WINDOW = 6;
 
-function tooMany(request: Request, prefix: string) {
-  const limit = rateLimit(clientKey(request, prefix), MAX_PER_WINDOW, WINDOW_MS);
+async function tooMany(request: Request, prefix: string) {
+  const limit = await rateLimit(clientKey(request, prefix), MAX_PER_WINDOW, WINDOW_MS);
   if (limit.ok) return null;
   return NextResponse.json(
     { error: `Bạn gửi hơi nhiều rồi, thử lại sau ${limit.retryAfter}s nhé` },
@@ -35,7 +35,7 @@ export async function GET(_request: Request, { params }: Params) {
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
 
-  const limited = tooMany(request, 'wish');
+  const limited = await tooMany(request, 'wish');
   if (limited) return limited;
 
   let body: unknown;
