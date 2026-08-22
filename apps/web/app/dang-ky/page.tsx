@@ -5,20 +5,21 @@ import type { FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+export default function RegisterPage() {
   // useSearchParams cần Suspense bao ngoài, nếu không Next bắt lỗi lúc build
   return (
     <Suspense>
-      <LoginForm />
+      <RegisterForm />
     </Suspense>
   );
 }
 
-function LoginForm() {
+function RegisterForm() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get('next') ?? '/quan-ly';
 
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -29,10 +30,10 @@ function LoginForm() {
     setBusy(true);
     setError('');
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name, email, password }),
       });
       const body = await res.json().catch(() => null);
       if (!res.ok) {
@@ -61,7 +62,20 @@ function LoginForm() {
           boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
         }}
       >
-        <h1 style={{ fontSize: 18, marginTop: 0 }}>Đăng nhập</h1>
+        <h1 style={{ fontSize: 18, marginTop: 0 }}>Tạo tài khoản</h1>
+
+        <label style={label} htmlFor="name">
+          Tên
+        </label>
+        <input
+          id="name"
+          type="text"
+          autoComplete="name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+          style={field}
+        />
 
         <label style={label} htmlFor="email">
           Email
@@ -82,7 +96,8 @@ function LoginForm() {
         <input
           id="password"
           type="password"
-          autoComplete="current-password"
+          autoComplete="new-password"
+          minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -92,13 +107,13 @@ function LoginForm() {
         {error && <div style={{ color: '#b42318', fontSize: 13, marginBottom: 10 }}>{error}</div>}
 
         <button type="submit" disabled={busy} style={submit}>
-          {busy ? 'Đang kiểm tra…' : 'Đăng nhập'}
+          {busy ? 'Đang tạo…' : 'Đăng ký'}
         </button>
 
         <div style={{ marginTop: 14, fontSize: 13, color: '#6b7280', textAlign: 'center' }}>
-          Chưa có tài khoản?{' '}
-          <Link href={`/dang-ky?next=${encodeURIComponent(next)}`} style={{ color: '#7a2c2c' }}>
-            Đăng ký
+          Đã có tài khoản?{' '}
+          <Link href={`/dang-nhap?next=${encodeURIComponent(next)}`} style={{ color: '#7a2c2c' }}>
+            Đăng nhập
           </Link>
         </div>
       </form>

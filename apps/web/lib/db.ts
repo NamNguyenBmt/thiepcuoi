@@ -273,6 +273,17 @@ export async function allSlugs(kind: 'templates' | 'invites'): Promise<string[]>
 
 // ─────────────────────────── Ghi ───────────────────────────
 
+export async function createUser(row: Omit<UserRow, 'createdAt'>): Promise<UserRow> {
+  const sql = await getSql();
+  const { rows } = await sql.query(
+    `insert into users (id, email, name, password_hash, role)
+     values ($1, $2, $3, $4, $5)
+     returning *`,
+    [row.id, row.email, row.name, row.passwordHash, row.role],
+  );
+  return toUser(rows[0]!);
+}
+
 export async function createSession(row: SessionRow): Promise<SessionRow> {
   const sql = await getSql();
   await sql.transaction(async (tx) => {

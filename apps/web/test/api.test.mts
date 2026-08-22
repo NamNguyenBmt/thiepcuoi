@@ -309,5 +309,40 @@ const dayDu = checkConfig({
 } as NodeJS.ProcessEnv);
 check('du bien thi khong con loi', dayDu.filter((i) => i.level === 'error').length === 0, dayDu);
 
+console.log('15. đăng ký tài khoản');
+const { createUser, getUserByEmail } = await import('../lib/db');
+const { parseRegisterInput, isRegisterError, MIN_PASSWORD } = await import('../lib/register');
+
+const validInput = parseRegisterInput({ email: 'Nguoi.Moi@Vidu.LOCAL ', password: 'matkhaudaydu', name: '  Người Mới  ' });
+check('email duoc chuan hoa thuong + cat khoang trang', !isRegisterError(validInput) && validInput.email === 'nguoi.moi@vidu.local', validInput);
+check('ten duoc cat khoang trang', !isRegisterError(validInput) && validInput.name === 'Người Mới', validInput);
+
+check('email khong hop le bi tu choi', isRegisterError(parseRegisterInput({ email: 'khong-phai-email', password: 'matkhaudaydu', name: 'X' })));
+check(
+  `mat khau ngan hon ${MIN_PASSWORD} bi tu choi`,
+  isRegisterError(parseRegisterInput({ email: 'a@b.com', password: '1234567', name: 'X' })),
+);
+check('thieu ten bi tu choi', isRegisterError(parseRegisterInput({ email: 'a@b.com', password: 'matkhaudaydu', name: '   ' })));
+
+if (!isRegisterError(validInput)) {
+  const newUser = await createUser({
+    id: `usr-${crypto.randomUUID()}`,
+    email: validInput.email,
+    name: validInput.name,
+    passwordHash: await hashPassword(validInput.password),
+    role: 'user',
+  });
+  check('tai khoan moi co role user', newUser.role === 'user', newUser.role);
+  check('tim lai duoc bang email', (await getUserByEmail(validInput.email))?.id === newUser.id);
+
+  let trung = false;
+  try {
+    await createUser({ id: `usr-${crypto.randomUUID()}`, email: validInput.email, name: 'Khac', passwordHash: 'x', role: 'user' });
+  } catch {
+    trung = true;
+  }
+  check('email trung bi rang buoc unique chan', trung);
+}
+
 console.log(failed === 0 ? '\nPASS' : `\n${failed} FAILED`);
 process.exit(failed === 0 ? 0 : 1);

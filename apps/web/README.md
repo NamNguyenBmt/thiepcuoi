@@ -17,6 +17,7 @@ npm run build
 |---|---|
 | `/` | Danh sách thiệp đã phát hành + mẫu |
 | `/dang-nhap` | Đăng nhập |
+| `/dang-ky` | Đăng ký tài khoản mới (role `user`) |
 | `/quan-ly` | Trang chủ thiệp: tạo mẫu/thiệp, thống kê, danh sách khách |
 | `/quan-ly/thiep/[id]` | Form điền nội dung thiệp + phát hành |
 | `/thiep/[slug]` | Thiệp thật: template + `InviteData` của cặp đôi |
@@ -31,6 +32,7 @@ npm run build
 | `GET /api/assets/[...key]` | Phục vụ ảnh kèm crop/resize/format/quality |
 | `GET /api/health` | Chạm thật vào database + kho ảnh; 200/503 |
 | `POST /api/auth/login` · `logout` · `GET me` | Phiên đăng nhập |
+| `POST /api/auth/register` | Tạo tài khoản mới, tự đăng nhập luôn sau khi tạo |
 | `POST /api/templates` · `DELETE /api/templates/[id]` | Tạo mẫu (trống hoặc nhân bản) · xoá |
 | `GET/POST /api/invites` · `GET/PUT /api/invites/[id]` | Tạo và sửa thiệp |
 
@@ -127,6 +129,14 @@ npm run passwd -- admin@thiepcuoi.local 'tu-dat' # hoặc tự đặt
 
 Đổi mật khẩu **không** thu hồi phiên đang đăng nhập; muốn buộc đăng nhập lại thì
 xoá bảng `sessions`.
+
+Ai cũng tự đăng ký được ở `/dang-ky` (`POST /api/auth/register`) — luôn tạo với
+role `user`, không có đường nào tự phong `admin` từ giao diện. Đăng ký thành
+công thì đăng nhập luôn, không cần xác nhận email (chưa có hạ tầng gửi mail).
+Giới hạn 5 lần/giờ theo IP, kiểm dữ liệu ở `lib/register.ts` (email đúng định
+dạng, mật khẩu ≥ 8 ký tự). Email trùng trả 409 kèm thông báo rõ ràng — không áp
+dụng kiểu "thông báo chung chung" như đăng nhập, vì ở đây người dùng cần biết để
+chuyển sang đăng nhập thay vì thử lại.
 
 ## Ảnh
 

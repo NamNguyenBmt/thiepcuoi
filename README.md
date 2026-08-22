@@ -60,14 +60,14 @@ khách ──GET /thiep/[slug]──►  template + InviteData ──► CanvasR
 Đã có: schema đầy đủ 11 loại node, renderer SSR-safe, editor kéo thả với
 undo/redo và snap, trang thiệp + API RSVP/lưu bút, lưu mẫu từ editor có chống
 ghi đè bằng `revision`, thư viện ảnh (upload + phục vụ kèm crop/resize/webp),
-đăng nhập + phân quyền theo chủ sở hữu, tạo mẫu/thiệp và phát hành từ giao diện,
-lưu trữ trên Postgres.
+đăng nhập + đăng ký + phân quyền theo chủ sở hữu, tạo mẫu/thiệp và phát hành từ
+giao diện, lưu trữ trên Postgres.
 
 Tài khoản đầu tiên do seed tạo, mật khẩu ngẫu nhiên in ra log server một lần.
 Đổi bằng: `npm run passwd -- <email> --prefix apps/web`.
 
-Chưa có: đăng ký tài khoản, captcha, chuyển hướng khi đổi slug, rate limit dùng chung
-nhiều instance. Dockerfile đã build và chạy thật (image 364 MB, health check xanh);
+Chưa có: captcha, chuyển hướng khi đổi slug, rate limit dùng chung nhiều instance.
+Dockerfile đã build và chạy thật (image 364 MB, health check xanh);
 quy trình deploy ở apps/web/docs/deploy.md. Chi tiết trong phần "Còn thiếu" của README từng package.
 
 ## Lưu trữ
