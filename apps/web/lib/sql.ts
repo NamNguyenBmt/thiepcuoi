@@ -186,11 +186,52 @@ async function seedIfEmpty(sql: Sql): Promise<void> {
   });
 }
 
-async function migrate(sql: Sql): Promise<void> {
+/**
+ * Áp dụng schema, và **bỏ qua khi database đã đúng phiên bản đó rồi**.
+ *
+ * Trước đây chạy lại cả 14 câu DDL mỗi lần khởi động. Mỗi câu là một round trip,
+ * nên khi hàm còn chạy khác châu lục với database thì riêng bước này đã ngốn
+ * ~2,5 giây của mọi cold start — người mở thiệp đầu tiên sau một lúc vắng khách
+ * phải trả cái giá đó.
+ *
+ * So sánh nguyên văn nội dung `schema.sql`: sửa file (kể cả thêm bảng mới) là
+ * khác chuỗi, khác chuỗi thì chạy lại từ đầu — mọi câu đều `if not exists` nên
+ * chạy lại không hỏng gì. Chỉ ghi nhận sau khi toàn bộ DDL chạy xong, nên nửa
+ * chừng gãy thì lần khởi động sau vẫn thử lại.
+ *
+ * Export để test đếm được số câu lệnh thật sự gửi đi.
+ */
+export async function migrate(sql: Sql): Promise<void> {
   // Đọc từ file thay vì nhúng chuỗi: DDL còn dùng cho psql và cho việc rà soát
   const ddl = await readFile(join(process.cwd(), 'lib', 'schema.sql'), 'utf8');
+
+  if ((await appliedDdl(sql)) === ddl) return;
+
   for (const statement of splitStatements(ddl)) {
     await sql.query(statement);
+  }
+
+  await sql.query(
+    `insert into schema_state (id, ddl, applied_at) values (1, $1, now())
+     on conflict (id) do update set ddl = excluded.ddl, applied_at = now()`,
+    [ddl],
+  );
+}
+
+/**
+ * Schema đang áp dụng, hoặc null nếu database còn trắng.
+ *
+ * Hỏi thẳng rồi bắt lỗi thay vì kiểm `to_regclass` trước: đường thường gặp
+ * (database đã dựng xong) chỉ tốn đúng một round trip, còn nhánh lỗi chỉ xảy ra
+ * đúng lần đầu đời của một database.
+ */
+async function appliedDdl(sql: Sql): Promise<string | null> {
+  try {
+    const { rows } = await sql.query<{ ddl: string }>('select ddl from schema_state where id = 1');
+    return rows[0]?.ddl ?? null;
+  } catch {
+    // Chưa có bảng schema_state — coi như chưa migrate lần nào
+    return null;
   }
 }
 

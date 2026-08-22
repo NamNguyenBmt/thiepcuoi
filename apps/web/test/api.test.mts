@@ -572,5 +572,40 @@ const sqlSauKhiHong = await getSql();
 const { rows: thuLai } = await sqlSauKhiHong.query<{ n: number }>('select 1 as n');
 check('database song lai thi dung duoc ngay, khong can khoi dong lai', thuLai[0]?.n === 1, thuLai);
 
+console.log('22. migrate bo qua khi schema da dung');
+const { migrate } = await import('../lib/sql');
+const { readFile: docFile } = await import('node:fs/promises');
+const ddlText = await docFile('lib/schema.sql', 'utf8');
+
+const sqlThat = await getSql();
+let soCau = 0;
+const demSql = {
+  query: ((text: string, params?: unknown[]) => {
+    soCau++;
+    return sqlThat.query(text, params);
+  }) as typeof sqlThat.query,
+  transaction: sqlThat.transaction,
+};
+
+// getSql() phía trên đã migrate rồi, nên lần này phải nhận ra và dừng sớm
+await migrate(demSql);
+check('database dung phien ban roi thi chi ton 1 cau lenh', soCau === 1, soCau);
+
+const { rows: daGhi } = await sqlThat.query<{ ddl: string }>('select ddl from schema_state where id = 1');
+check('ghi lai nguyen van schema.sql', daGhi[0]?.ddl === ddlText);
+
+// Database chua tung migrate (hoac schema.sql vua doi) thi phai chay day du
+await sqlThat.query('delete from schema_state');
+soCau = 0;
+await migrate(demSql);
+check('database chua dung phien ban thi chay het DDL', soCau > 10, soCau);
+
+const { rows: ghiLai } = await sqlThat.query<{ ddl: string }>('select ddl from schema_state where id = 1');
+check('chay xong thi ghi nhan lai', ghiLai[0]?.ddl === ddlText);
+
+soCau = 0;
+await migrate(demSql);
+check('ngay sau do lai bo qua duoc', soCau === 1, soCau);
+
 console.log(failed === 0 ? '\nPASS' : `\n${failed} FAILED`);
 process.exit(failed === 0 ? 0 : 1);
