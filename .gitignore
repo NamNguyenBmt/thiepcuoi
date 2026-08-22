@@ -1,0 +1,36 @@
+# Cài theo nền tảng, không commit
+node_modules
+**/node_modules
+
+# Build output
+.next
+**/.next
+dist
+**/dist
+apps/editor/dist
+
+# Postgres/MinIO cài cục bộ + dữ liệu dev (uploads, PGlite data dir)
+.local
+.data
+**/.data
+
+# Bí mật — không commit dưới bất kỳ hình thức nào
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Log, OS cruft
+**/*.log
+npm-debug.log*
+**/.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.vscode
+.idea
+
+# Cấu hình Claude Code cục bộ theo máy, không chia sẻ qua repo
+.claude/settings.local.json

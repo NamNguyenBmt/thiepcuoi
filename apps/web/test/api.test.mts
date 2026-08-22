@@ -1,0 +1,313 @@
+/**
+ * Test lớp dữ liệu: `npx tsx test/api.test.ts`
+ *
+ * Chạy trên một file DB tạm nên không đụng dữ liệu dev. Không dựng server —
+ * phần HTTP mỏng, còn thứ dễ hỏng là seed, nén doc và ghi song song.
+ */
+
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
+const dir = await mkdtemp(join(tmpdir(), 'tcweb-'));
+/**
+ * Mặc định chạy trên PGlite trong RAM: mỗi lần chạy là một database sạch, không
+ * cần cài gì. Đặt TEST_DATABASE_URL để chạy đúng bộ test này trên Postgres thật
+ * — cùng SQL, khác driver.
+ */
+const testUrl = process.env.TEST_DATABASE_URL;
+if (testUrl) {
+  process.env.DATABASE_URL = testUrl;
+  // Xoá sạch lược đồ trước khi chạy: database thật không tự biến mất như RAM
+  const { Client } = await import('pg');
+  const client = new Client({ connectionString: testUrl });
+  await client.connect();
+  await client.query('drop schema public cascade; create schema public');
+  await client.end();
+} else {
+  process.env.PGLITE_DIR = 'memory://';
+}
+process.env.UPLOAD_DIR = join(dir, 'uploads');
+console.log(`(driver: ${testUrl ? 'pg → Postgres thật' : 'PGlite trong RAM'})`);
+
+const {
+  listTemplates, getInviteBySlug, createRsvp, createWish, listWishes, listRsvps, updateTemplate,
+  createTemplate, deleteTemplate, createInvite, updateInvite, getTemplateById,
+} = await import('../lib/db');
+const { unpackDoc, validateDoc, collectTokens, resolveTokens } = await import('@thiepcuoi/schema');
+const { emptyInviteData: emptyInviteDataEarly } = await import('../lib/invite');
+const emptyInviteData = emptyInviteDataEarly;
+
+let failed = 0;
+function check(name: string, cond: boolean, extra?: unknown) {
+  if (cond) console.log(`  ok   ${name}`);
+  else {
+    failed++;
+    console.log(`  FAIL ${name}`, extra ?? '');
+  }
+}
+
+console.log('1. seed');
+const templates = await listTemplates();
+// "Cơ bản" (ví dụ tối giản) + "Trọn vẹn" (mẫu mà thiệp mồi dùng)
+check('có 2 template mồi', templates.length === 2, templates.length);
+const full = templates.find((t) => t.slug === 'tron-ven');
+check('có mẫu Trọn vẹn', !!full, templates.map((t) => t.slug));
+const invite = await getInviteBySlug('quan-lan');
+check('có thiệp mẫu', invite?.data.groom.shortName === 'Quân', invite?.slug);
+
+console.log('2. doc nén/giải nén được và hợp lệ');
+const doc = unpackDoc(full!.docPacked);
+const errors = validateDoc(doc).filter((i) => i.level === 'error');
+check('không lỗi validate', errors.length === 0, errors);
+check('gói nhỏ hơn JSON thô', full!.docPacked.length < JSON.stringify(doc).length);
+
+console.log('3. token');
+const tokens = collectTokens(doc);
+check('liệt kê đủ token', tokens.includes('groom.shortName') && tokens.includes('events.0.venue'), tokens);
+check(
+  'resolve được đường dẫn qua mảng',
+  resolveTokens('{{events.0.venue}}', invite!.data) === 'Tại tư gia nhà trai',
+  resolveTokens('{{events.0.venue}}', invite!.data),
+);
+check(
+  'thiệp mồi có đủ 4 sự kiện cho mẫu Trọn vẹn',
+  invite!.data.events.length === 4,
+  invite!.data.events.length,
+);
+
+console.log('4. RSVP');
+const rsvp = await createRsvp({
+  inviteId: invite!.id, name: 'Ngọc Anh', attending: true, attendeeCount: 2,
+  guestSide: 'bride', transportation: null, pickupSlotId: null, message: 'Chúc hai bạn trăm năm hạnh phúc!',
+});
+check('lưu được', rsvp.id.length > 0);
+const wishes = await listWishes(invite!.id);
+check('lời chúc trong form vào luôn sổ lưu bút', wishes.length === 1 && wishes[0]!.name === 'Ngọc Anh', wishes);
+
+await createRsvp({
+  inviteId: invite!.id, name: 'Không lời chúc', attending: false, attendeeCount: 0,
+  guestSide: null, transportation: null, pickupSlotId: null, message: '   ',
+});
+check('message rỗng thì không tạo lưu bút', (await listWishes(invite!.id)).length === 1);
+
+console.log('5. ghi song song (transaction cua Postgres)');
+await Promise.all(
+  Array.from({ length: 8 }, (_, i) =>
+    createWish({ inviteId: invite!.id, name: `Khách ${i}`, message: `Lời chúc ${i}` }),
+  ),
+);
+const after = await listWishes(invite!.id);
+check('không mất bản ghi nào khi ghi đồng thời', after.length === 9, after.length);
+check('mới nhất lên đầu', after[0]!.createdAt >= after[after.length - 1]!.createdAt);
+
+console.log('6. tách theo thiệp + toàn vẹn tham chiếu');
+const tplForSecond = (await listTemplates())[0]!;
+const second = await createInvite({
+  id: 'inv-thu-hai', slug: 'thu-hai', ownerId: tplForSecond.ownerId,
+  templateId: tplForSecond.id, data: emptyInviteData(), publishedAt: null,
+});
+await createWish({ inviteId: second.id, name: 'X', message: 'Y' });
+check('không lẫn lời chúc giữa các thiệp', (await listWishes(invite!.id)).length === 9);
+check('thiệp kia có đúng 1 lời chúc', (await listWishes(second.id)).length === 1);
+check('rsvp cũng tách đúng', (await listRsvps(invite!.id)).length === 2);
+
+// Khoá ngoại: bản JSON trước đây nhận bừa, Postgres thì chặn
+let fkChan = false;
+try {
+  await createWish({ inviteId: 'inv-khong-ton-tai', name: 'X', message: 'Y' });
+} catch {
+  fkChan = true;
+}
+check('không ghi được lời chúc cho thiệp không tồn tại', fkChan);
+
+await rm(dir, { recursive: true, force: true });
+console.log('7. luu mau');
+const t0 = (await listTemplates())[0]!;
+check('revision khoi tao', t0.revision === 1, t0.revision);
+const saved = await updateTemplate(t0.id, { docPacked: t0.docPacked, name: 'Ten moi' });
+check('revision tang sau moi lan luu', saved?.revision === 2, saved?.revision);
+check('doi duoc ten', saved?.name === 'Ten moi');
+check('id la khong thi tra null', (await updateTemplate('khong-co', { name: 'x' })) === null);
+
+console.log('8. kho anh');
+const { isValidKey, parseTransform, storeUpload, renderAsset } = await import('../lib/storage');
+const sharp = (await import('sharp')).default;
+
+check('key hop le', isValidKey('uploads/f7fd5795-c688-4d78-9b96-26ec2b519f95.jpg'));
+check('chan path traversal', !isValidKey('uploads/../../package.json'));
+check('chan duoi la', !isValidKey('uploads/f7fd5795-c688-4d78-9b96-26ec2b519f95.exe'));
+check('chan thu muc la', !isValidKey('khac/f7fd5795-c688-4d78-9b96-26ec2b519f95.jpg'));
+
+const tf = parseTransform(new URLSearchParams('crop=10,20,30,40&resize=400x&format=webp&quality=80'));
+check('doc duoc crop', tf.crop?.x === 10 && tf.crop?.w === 30, tf.crop);
+check('doc duoc resize/format/quality', tf.resize === 400 && tf.format === 'webp' && tf.quality === 80, tf);
+check('bo qua tham so rac', Object.keys(parseTransform(new URLSearchParams('resize=abc&quality=999'))).length === 0);
+
+const png = await sharp({ create: { width: 900, height: 600, channels: 3, background: '#7a2c2c' } }).png().toBuffer();
+const ok = await storeUpload(new File([png], 'a.png', { type: 'image/png' }));
+check('luu duoc PNG', !('error' in ok) && ok.width === 900 && ok.height === 600, ok);
+
+const svg = await storeUpload(new File(['<svg onload="alert(1)"/>'], 'x.svg', { type: 'image/svg+xml' }));
+check('tu choi SVG (nguy co XSS)', 'error' in svg && svg.status === 415, svg);
+
+const big = await storeUpload(new File([new Uint8Array(13 * 1024 * 1024)], 'big.png', { type: 'image/png' }));
+check('tu choi file qua nang', 'error' in big && big.status === 413, big);
+
+const notImage = await storeUpload(new File(['khong phai anh'], 'a.png', { type: 'image/png' }));
+check('tu choi file khong phai anh', 'error' in notImage && notImage.status === 400, notImage);
+
+if (!('error' in ok)) {
+  const small = await renderAsset(ok.key, ok.mime, { resize: 300, format: 'webp' });
+  const meta = await sharp(small.body).metadata();
+  check('resize hoat dong', meta.width === 300 && meta.format === 'webp', meta);
+  const cropped = await renderAsset(ok.key, ok.mime, { crop: { x: 0, y: 0, w: 100, h: 50 } });
+  check('crop hoat dong', (await sharp(cropped.body).metadata()).width === 100);
+  const bigger = await renderAsset(ok.key, ok.mime, { resize: 2000, format: 'webp' });
+  check('khong phong to qua anh goc', (await sharp(bigger.body).metadata()).width === 900);
+}
+
+console.log('9. mat khau va phan quyen');
+const { hashPassword, verifyPassword, canEdit } = await import('../lib/auth');
+const { rateLimit, resetRateLimits } = await import('../lib/ratelimit');
+
+const hash = await hashPassword('matkhau123');
+check('hash khong chua mat khau goc', !hash.includes('matkhau123'), hash.slice(0, 20));
+check('dung mat khau thi qua', await verifyPassword('matkhau123', hash));
+check('sai mat khau thi truot', !(await verifyPassword('matkhau124', hash)));
+check('hash rong/hong thi truot', !(await verifyPassword('x', 'khong-co-dau-hai-cham')));
+
+const hash2 = await hashPassword('matkhau123');
+check('cung mat khau ra hash khac nhau (salt ngau nhien)', hash !== hash2);
+check('hash thu hai van verify duoc', await verifyPassword('matkhau123', hash2));
+
+const admin = { id: 'a', role: 'admin' } as any;
+const owner = { id: 'b', role: 'user' } as any;
+const other = { id: 'c', role: 'user' } as any;
+check('chu so huu sua duoc', canEdit(owner, 'b'));
+check('nguoi khac khong sua duoc', !canEdit(other, 'b'));
+check('admin sua duoc cua nguoi khac', canEdit(admin, 'b'));
+
+resetRateLimits();
+const hits = Array.from({ length: 4 }, () => rateLimit('test-ip', 3, 60_000).ok);
+check('chan sau khi vuot nguong', JSON.stringify(hits) === '[true,true,true,false]', hits);
+check('khoa khac khong bi anh huong', rateLimit('test-ip-2', 3, 60_000).ok);
+const blocked = rateLimit('test-ip', 3, 60_000);
+check('bao thoi gian cho', blocked.retryAfter > 0 && blocked.retryAfter <= 60, blocked);
+resetRateLimits();
+check('reset thi cho lai tu dau', rateLimit('test-ip', 3, 60_000).ok);
+
+console.log('10. slug');
+const { toSlug, uniqueSlug, validateSlug } = await import('../lib/slug');
+
+check('bo dau tieng Viet', toSlug('Mẫu Đơn Giản của Tôi') === 'mau-don-gian-cua-toi', toSlug('Mẫu Đơn Giản của Tôi'));
+check('xu ly chu d gach ngang', toSlug('Đám cưới Đức') === 'dam-cuoi-duc', toSlug('Đám cưới Đức'));
+check('gop dau cau thanh mot gach', toSlug('Quân  &  Vân!!') === 'quan-van', toSlug('Quân  &  Vân!!'));
+check('khong de gach o hai dau', !toSlug('  --xin chao--  ').startsWith('-'));
+check('cat do dai', toSlug('a'.repeat(100)).length === 60);
+
+check('slug moi giu nguyen', uniqueSlug('Tuấn Mai', []) === 'tuan-mai');
+check('trung thi them so', uniqueSlug('Tuấn Mai', ['tuan-mai']) === 'tuan-mai-2');
+check('trung tiep thi tang so', uniqueSlug('Tuấn Mai', ['tuan-mai', 'tuan-mai-2']) === 'tuan-mai-3');
+check('ten toan ky tu la van ra slug', uniqueSlug('!!!', []) === 'thiep');
+check('slug qua ngan bi tu choi', validateSlug('ab') === null);
+check('slug hop le duoc chuan hoa', validateSlug('Tuấn Mai') === 'tuan-mai');
+
+console.log('11. lam sach InviteData');
+const { parseInviteData } = await import('../lib/invite');
+
+const dirty = parseInviteData({
+  groom: { fullName: '  Nguyễn Văn A  ', shortName: 'A', khongPhaiTruong: 'bo di' },
+  events: Array.from({ length: 12 }, (_, i) => ({ title: `E${i}`, datetime: 'khong-phai-ngay' })),
+  accounts: Array.from({ length: 9 }, () => ({ name: 'x' })),
+  photos: { cover: 'uploads/a.jpg', rong: '', 'so-khong-phai-chuoi': 123 },
+  message: 'm'.repeat(5000),
+  linhTinh: 'bo di',
+});
+check('cat khoang trang', dirty.groom.fullName === 'Nguyễn Văn A', dirty.groom.fullName);
+check('bo truong la', !('khongPhaiTruong' in dirty.groom) && !('linhTinh' in (dirty as any)));
+check('gioi han so su kien', dirty.events.length === 6, dirty.events.length);
+check('ngay khong doc duoc thi de rong', dirty.events[0]!.datetime === '', dirty.events[0]!.datetime);
+check('gioi han so tai khoan', dirty.accounts.length === 4, dirty.accounts.length);
+check('bo photo rong / khong phai chuoi', Object.keys(dirty.photos).join(',') === 'cover', dirty.photos);
+check('cat do dai loi nhan', dirty.message.length === 2000, dirty.message.length);
+check('thieu co dau thi ra chuoi rong', dirty.bride.fullName === '');
+check('thiep moi co san 1 su kien', emptyInviteData().events.length === 1);
+
+console.log('12. tao mau va thiep');
+const base = (await listTemplates())[0]!;
+const tplMoi = await createTemplate({
+  id: 'tpl-test', slug: 'tpl-test', name: 'Thu', ownerId: base.ownerId,
+  docPacked: base.docPacked, thumbnail: null, usageCount: 0,
+});
+check('mau moi bat dau tu revision 1', tplMoi.revision === 1);
+check('xoa duoc mau chua ai dung', await deleteTemplate('tpl-test'));
+check('xoa roi thi khong tim thay', (await getTemplateById('tpl-test')) === null);
+
+const usageTruoc = base.usageCount;
+await createInvite({
+  id: 'inv-test', slug: 'inv-test', ownerId: base.ownerId, templateId: base.id,
+  data: emptyInviteData(), publishedAt: null,
+});
+check('tao thiep lam tang usageCount cua mau', (await getTemplateById(base.id))!.usageCount === usageTruoc + 1);
+check('khong xoa duoc mau con thiep dung', !(await deleteTemplate(base.id)));
+
+const published = await updateInvite('inv-test', { publishedAt: new Date().toISOString() });
+check('phat hanh duoc', Boolean(published?.publishedAt));
+check('sua thiep khong ton tai tra null', (await updateInvite('inv-khong-co', { slug: 'x' })) === null);
+
+console.log('13. kho file (blobstore)');
+const { getBlobStore } = await import('../lib/blobstore');
+const blob = await getBlobStore();
+console.log('   ', blob.describe());
+
+const key = `uploads/${crypto.randomUUID()}.png`;
+const noiDung = Buffer.from('noi dung thu ' + Date.now());
+await blob.put(key, noiDung, 'image/png');
+check('doc lai dung byte da ghi', (await blob.get(key)).equals(noiDung));
+
+await blob.remove(key);
+let daXoa = false;
+try {
+  await blob.get(key);
+} catch {
+  daXoa = true;
+}
+check('xoa roi thi khong doc duoc nua', daXoa);
+
+let khongCo = false;
+try {
+  await blob.get(`uploads/${crypto.randomUUID()}.png`);
+} catch {
+  khongCo = true;
+}
+check('key khong ton tai thi nem loi', khongCo);
+
+console.log('14. kiem cau hinh');
+const { checkConfig } = await import('../lib/config-check');
+
+const prodThieu = checkConfig({ NODE_ENV: 'production' } as NodeJS.ProcessEnv);
+const loiProd = prodThieu.filter((i) => i.level === 'error').map((i) => i.key);
+check('production thieu DATABASE_URL la LOI', loiProd.includes('DATABASE_URL'), loiProd);
+check('production thieu S3 la LOI', loiProd.includes('S3_BUCKET'), loiProd);
+
+const devThieu = checkConfig({ NODE_ENV: 'development' } as NodeJS.ProcessEnv);
+check('dev thieu ca hai chi la canh bao', devThieu.every((i) => i.level === 'warn'), devThieu);
+
+const nuaVoi = checkConfig({
+  NODE_ENV: 'production', DATABASE_URL: 'postgres://x', S3_BUCKET: 'b', S3_ACCESS_KEY_ID: 'k',
+} as NodeJS.ProcessEnv);
+check(
+  'cau hinh S3 do dang bi bat',
+  nuaVoi.some((i) => i.level === 'error' && i.message.includes('S3_SECRET_ACCESS_KEY')),
+  nuaVoi,
+);
+
+const dayDu = checkConfig({
+  NODE_ENV: 'production', DATABASE_URL: 'postgres://x',
+  S3_BUCKET: 'b', S3_ACCESS_KEY_ID: 'k', S3_SECRET_ACCESS_KEY: 's',
+} as NodeJS.ProcessEnv);
+check('du bien thi khong con loi', dayDu.filter((i) => i.level === 'error').length === 0, dayDu);
+
+console.log(failed === 0 ? '\nPASS' : `\n${failed} FAILED`);
+process.exit(failed === 0 ? 0 : 1);

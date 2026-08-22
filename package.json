@@ -1,0 +1,17 @@
+{
+  "name": "thiepcuoionline",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nền tảng thiệp cưới online: schema, renderer, editor kéo thả, trang thiệp",
+  "scripts": {
+    "dev:web": "npm run dev --prefix apps/web",
+    "dev:editor": "npm run dev --prefix apps/editor",
+    "test": "npm run test:schema && npm run test:runtime && npm run test:web",
+    "test:schema": "npm test --prefix packages/schema",
+    "test:runtime": "npm test --prefix packages/runtime",
+    "test:web": "npm test --prefix apps/web",
+    "typecheck": "npm run typecheck --prefix packages/schema && npm run typecheck --prefix packages/runtime && npm run typecheck --prefix apps/editor && npm run typecheck --prefix apps/web",
+    "build": "npm run build --prefix apps/editor && npm run build --prefix apps/web",
+    "install:all": "npm i --prefix packages/schema && npm i --prefix packages/runtime && npm i --prefix apps/editor && npm i --prefix apps/web"
+  }
+}

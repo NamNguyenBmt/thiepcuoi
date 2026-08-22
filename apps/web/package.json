@@ -1,0 +1,39 @@
+{
+  "name": "@thiepcuoi/web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx test/api.test.mts",
+    "db:dev": "tsx scripts/pg-dev.mts",
+    "db": "tsx scripts/pg-local.mts",
+    "passwd": "tsx scripts/set-password.mts",
+    "assets:migrate": "tsx scripts/migrate-assets.mts",
+    "s3:dev": "tsx scripts/minio-dev.mts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1115.0",
+    "@electric-sql/pglite": "^0.5.5",
+    "@thiepcuoi/runtime": "file:../../packages/runtime",
+    "@thiepcuoi/schema": "file:../../packages/schema",
+    "next": "^15.1.0",
+    "pg": "^8.23.0",
+    "qrcode": "^1.5.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite-socket": "^0.2.8",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.23.1",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

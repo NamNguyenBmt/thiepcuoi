@@ -1,0 +1,25 @@
+# Mọi thứ nặng và/hoặc phụ thuộc nền tảng đều phải ở ngoài context.
+# node_modules cài trên Windows mà lọt vào image Linux là hỏng ngay: sharp,
+# pglite và pg đều có phần binary theo nền tảng.
+
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+**/dist
+
+# Postgres và MinIO cài cục bộ (gần 300 MB) — không liên quan tới image
+.local
+.data
+
+# Bí mật: image không được mang theo
+.env
+.env.local
+**/.env
+**/.env.local
+
+.git
+.gitignore
+**/*.log
+**/.DS_Store

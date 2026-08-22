@@ -1,0 +1,84 @@
+# Chạy cả stack giống production trên một máy:
+#   docker compose up --build
+#
+# Web ở http://localhost:3000, MinIO console ở http://localhost:9001.
+# Đây là bản để thử và để phát triển — production thật thì dùng Postgres và R2
+# có sao lưu, đừng chạy database trong container không có volume dự phòng.
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: thiepcuoi
+      POSTGRES_PASSWORD: thiepcuoi-local
+      POSTGRES_DB: thiepcuoi
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # `pg_isready` xong chưa chắc đã nhận kết nối; thêm -U để kiểm đúng user
+      test: ['CMD-SHELL', 'pg_isready -U thiepcuoi -d thiepcuoi']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: thiepcuoi
+      MINIO_ROOT_PASSWORD: thiepcuoi-local
+    ports:
+      - '9001:9001'
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # Bucket phải có sẵn trước khi web ghi ảnh; container này tạo xong là thoát
+  minio-init:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 thiepcuoi thiepcuoi-local &&
+      mc mb --ignore-existing local/thiepcuoi-assets &&
+      echo 'bucket san sang'
+      "
+
+  web:
+    # Đặt tên image tường minh để còn dùng lại bản đã `docker build` sẵn:
+    #   docker build -t thiepcuoi:latest .
+    #   docker compose up -d --no-build
+    # (compose tự build cần buildx >= 0.17; bản docker.io của Debian không kèm)
+    image: thiepcuoi:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://thiepcuoi:thiepcuoi-local@postgres:5432/thiepcuoi
+      S3_BUCKET: thiepcuoi-assets
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY_ID: thiepcuoi
+      S3_SECRET_ACCESS_KEY: thiepcuoi-local
+      S3_REGION: auto
+      # MinIO chỉ chạy được path-style; R2 và AWS thì để false
+      S3_FORCE_PATH_STYLE: 'true'
+      # Bỏ trống để hệ thống sinh mật khẩu ngẫu nhiên, xem log lần chạy đầu:
+      #   docker compose logs web | grep seed
+      SEED_EMAIL: admin@thiepcuoi.local
+    ports:
+      - '3000:3000'
+
+volumes:
+  pgdata:
+  miniodata:
