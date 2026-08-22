@@ -370,5 +370,50 @@ check('token khong doc duoc (khong phai base64) thi truot', !verifyCaptcha('!!!k
 check('thieu answer thi truot', !verifyCaptcha(c2.token, ''));
 check('token khong phai chuoi thi truot', !verifyCaptcha(undefined, '5'));
 
+console.log('17. redirect slug thiep');
+const { getSlugRedirectTarget } = await import('../lib/db');
+
+const baseTpl = (await listTemplates())[0]!;
+const r1 = await createInvite({
+  id: 'inv-redirect-test', slug: 'redir-a', ownerId: baseTpl.ownerId, templateId: baseTpl.id,
+  data: emptyInviteData(), publishedAt: new Date().toISOString(),
+});
+check('tao thiep voi slug ban dau', r1.slug === 'redir-a');
+
+const r2 = await updateInvite(r1.id, { slug: 'redir-b' }, r1.slug);
+check('doi slug thanh cong', r2?.slug === 'redir-b', r2?.slug);
+check('slug cu tra ve dung invite id', (await getSlugRedirectTarget('redir-a')) === r1.id);
+check('slug moi khong nam trong bang redirect', (await getSlugRedirectTarget('redir-b')) === null);
+
+const r3 = await updateInvite(r1.id, { slug: 'redir-c' }, 'redir-b');
+check('doi slug lan hai', r3?.slug === 'redir-c', r3?.slug);
+check('slug redir-a (doi tu lau) van con tro dung', (await getSlugRedirectTarget('redir-a')) === r1.id);
+check('slug redir-b (vua la slug song) gio tro dung', (await getSlugRedirectTarget('redir-b')) === r1.id);
+
+const noChange = await updateInvite(r1.id, { data: emptyInviteData() }, r1.slug);
+check('sua du lieu khong doi slug thi khong dung toi redirect', noChange?.slug === 'redir-c');
+
+// Tra truc tiep luon uu tien hon bang redirect: thiep khac chiem lai duoc slug cu
+const reclaimed = await createInvite({
+  id: 'inv-redirect-other', slug: 'redir-a', ownerId: baseTpl.ownerId, templateId: baseTpl.id,
+  data: emptyInviteData(), publishedAt: new Date().toISOString(),
+});
+check('thiep khac chiem lai duoc slug cu (khong bi bang redirect chan)', reclaimed.slug === 'redir-a');
+check(
+  'tra truc tiep ra thiep moi, khong phai muc redirect cu',
+  (await getInviteBySlug('redir-a'))?.id === reclaimed.id,
+);
+
+// on conflict: doi qua lai nhieu lan cung mot old_slug khong duoc loi khoa trung
+const cyc = await createInvite({
+  id: 'inv-redirect-cycle', slug: 'redir-x', ownerId: baseTpl.ownerId, templateId: baseTpl.id,
+  data: emptyInviteData(), publishedAt: new Date().toISOString(),
+});
+await updateInvite(cyc.id, { slug: 'redir-y' }, 'redir-x');
+await updateInvite(cyc.id, { slug: 'redir-x' }, 'redir-y');
+const backAndForth = await updateInvite(cyc.id, { slug: 'redir-z' }, 'redir-x');
+check('doi qua lai nhieu lan khong loi (on conflict)', backAndForth?.slug === 'redir-z', backAndForth);
+check('old_slug ghi de van tro dung invite', (await getSlugRedirectTarget('redir-x')) === cyc.id);
+
 console.log(failed === 0 ? '\nPASS' : `\n${failed} FAILED`);
 process.exit(failed === 0 ? 0 : 1);

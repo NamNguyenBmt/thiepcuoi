@@ -66,8 +66,8 @@ giao diện, lưu trữ trên Postgres.
 Tài khoản đầu tiên do seed tạo, mật khẩu ngẫu nhiên in ra log server một lần.
 Đổi bằng: `npm run passwd -- <email> --prefix apps/web`.
 
-Chưa có: chuyển hướng khi đổi slug, rate limit dùng chung nhiều instance.
-Dockerfile đã build và chạy thật (image 364 MB, health check xanh);
+Chưa có: rate limit dùng chung nhiều instance. Dockerfile đã build và chạy
+thật (image 364 MB, health check xanh);
 quy trình deploy ở apps/web/docs/deploy.md. Chi tiết trong phần "Còn thiếu" của README từng package.
 
 ## Lưu trữ

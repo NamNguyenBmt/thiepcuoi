@@ -73,8 +73,13 @@ Vài chốt cố ý:
 
 - **Không xoá được mẫu còn thiệp đang dùng** (409). Xoá được thì trang thiệp của
   họ chết ngay mà chủ mẫu không hề biết mình vừa làm gì.
-- **Đổi slug thiệp là đổi link đã gửi cho khách**, và slug cũ không được giữ lại
-  chuyển hướng — cần bảng riêng, chưa làm.
+- **Đổi slug thiệp là đổi link đã gửi cho khách.** Slug cũ được giữ lại trong
+  `invite_slug_redirects` (bảng riêng, ghi trong cùng transaction lúc đổi —
+  đổi xong mà ghi redirect thất bại thì link cũ chết mà không ai biết) và
+  `/thiep/[slug]` chuyển hướng vĩnh viễn (308) tới slug hiện tại khi tra trực
+  tiếp không thấy. Đổi qua lại nhiều lần vẫn đúng: `on conflict` ghi đè chủ mới
+  nhất cho cùng slug cũ. Tra trực tiếp luôn ưu tiên trước — thiệp khác chiếm lại
+  được một slug đã bỏ, không bị bảng redirect chặn.
 - **Slot ảnh trong form lấy từ chính mẫu.** Người điền thiệp chỉ thấy đúng những
   khung ảnh mà người thiết kế đã chừa, không phải đoán tên slot.
 - **`InviteData` được làm sạch ở server** (`lib/invite.ts`): cắt độ dài, giới hạn

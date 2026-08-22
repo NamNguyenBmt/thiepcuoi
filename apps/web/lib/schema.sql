@@ -55,6 +55,15 @@ create table if not exists invites (
 );
 create index if not exists invites_owner_idx on invites (owner_id);
 
+-- Slug cũ của thiệp sau khi đổi tên, để link đã gửi cho khách không chết.
+-- Tra trực tiếp trong `invites` luôn ưu tiên trước bảng này (xem lib/db.ts),
+-- nên một slug từng bị đổi đi rồi được dùng lại cho thiệp khác không xung đột.
+create table if not exists invite_slug_redirects (
+  old_slug   text primary key,
+  invite_id  text not null references invites(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
 create table if not exists rsvps (
   id             text primary key,
   invite_id      text not null references invites(id) on delete cascade,

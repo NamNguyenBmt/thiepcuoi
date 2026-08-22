@@ -28,8 +28,8 @@ export async function GET(_request: Request, { params }: Params) {
  * Sửa nội dung thiệp: dữ liệu cặp đôi, slug, và trạng thái phát hành.
  *
  * Đổi slug là đổi luôn đường link đã gửi cho khách, nên chỉ đổi khi client gửi
- * `slug` khác hẳn — và slug cũ không được giữ lại chuyển hướng (việc đó cần
- * bảng riêng, ghi trong phần "còn thiếu").
+ * `slug` khác hẳn — slug cũ được giữ lại trong `invite_slug_redirects` để
+ * `/thiep/[slug]` chuyển hướng thay vì trả 404 (xem lib/db.ts::updateInvite).
  */
 export async function PUT(request: Request, { params }: Params) {
   const { id } = await params;
@@ -68,6 +68,6 @@ export async function PUT(request: Request, { params }: Params) {
     patch.publishedAt = b.published ? (invite.publishedAt ?? new Date().toISOString()) : null;
   }
 
-  const saved = await updateInvite(id, patch);
+  const saved = await updateInvite(id, patch, invite.slug);
   return NextResponse.json(saved);
 }

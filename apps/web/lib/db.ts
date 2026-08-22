@@ -372,29 +372,60 @@ export async function createInvite(row: InviteRow): Promise<InviteRow> {
   });
 }
 
+/**
+ * `previousSlug` chỉ cần khi `patch.slug` đổi giá trị: route truyền slug cũ vào
+ * để ghi lại redirect trong cùng transaction với việc đổi — không thể tách làm
+ * hai bước, vì đổi rồi mà ghi redirect thất bại là link cũ chết mà không ai biết.
+ */
 export async function updateInvite(
   id: string,
   patch: Partial<Pick<InviteRow, 'slug' | 'data' | 'publishedAt'>>,
+  previousSlug?: string,
 ): Promise<InviteRow | null> {
   const sql = await getSql();
-  const { rows } = await sql.query(
-    `update invites
-        set slug         = coalesce($2, slug),
-            data         = coalesce($3::jsonb, data),
-            published_at = case when $4 then $5::timestamptz else published_at end
-      where id = $1
-      returning *`,
-    [
-      id,
-      patch.slug ?? null,
-      patch.data ? JSON.stringify(patch.data) : null,
-      // publishedAt phải phân biệt "không đụng tới" với "đặt thành null" (gỡ phát
-      // hành), nên cần cờ riêng chứ coalesce không diễn tả được
-      'publishedAt' in patch,
-      patch.publishedAt ?? null,
-    ],
+  return sql.transaction(async (tx) => {
+    const { rows } = await tx.query(
+      `update invites
+          set slug         = coalesce($2, slug),
+              data         = coalesce($3::jsonb, data),
+              published_at = case when $4 then $5::timestamptz else published_at end
+        where id = $1
+        returning *`,
+      [
+        id,
+        patch.slug ?? null,
+        patch.data ? JSON.stringify(patch.data) : null,
+        // publishedAt phải phân biệt "không đụng tới" với "đặt thành null" (gỡ phát
+        // hành), nên cần cờ riêng chứ coalesce không diễn tả được
+        'publishedAt' in patch,
+        patch.publishedAt ?? null,
+      ],
+    );
+    const updated = rows[0] ? toInvite(rows[0]) : null;
+
+    if (updated && patch.slug && previousSlug && previousSlug !== patch.slug) {
+      // on conflict: đổi qua lại A→B→A→C thì "B" đã có một hàng redirect từ lần
+      // đổi trước — trỏ lại nó về chủ hiện tại thay vì báo lỗi khoá trùng.
+      await tx.query(
+        `insert into invite_slug_redirects (old_slug, invite_id)
+         values ($1, $2)
+         on conflict (old_slug) do update set invite_id = excluded.invite_id, created_at = now()`,
+        [previousSlug, id],
+      );
+    }
+
+    return updated;
+  });
+}
+
+/** Thiệp đang thực sự đứng ở slug này, sau khi theo redirect nếu cần */
+export async function getSlugRedirectTarget(oldSlug: string): Promise<string | null> {
+  const sql = await getSql();
+  const { rows } = await sql.query<{ invite_id: string }>(
+    'select invite_id from invite_slug_redirects where old_slug = $1',
+    [oldSlug],
   );
-  return rows[0] ? toInvite(rows[0]) : null;
+  return rows[0]?.invite_id ?? null;
 }
 
 export async function createRsvp(row: Omit<RsvpRow, 'id' | 'createdAt'>): Promise<RsvpRow> {

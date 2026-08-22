@@ -1,7 +1,7 @@
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import QRCode from 'qrcode';
-import { getHearts, getInviteBySlug, getTemplateById, listWishes } from '@/lib/db';
+import { getHearts, getInviteById, getInviteBySlug, getSlugRedirectTarget, getTemplateById, listWishes } from '@/lib/db';
 import { InviteView } from '@/components/InviteView';
 import { ASSET_BASE } from '@/lib/config';
 import { siteOrigin } from '@/lib/site-url';
@@ -27,7 +27,17 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 export default async function InvitePage({ params }: Params) {
   const { slug } = await params;
   const invite = await getInviteBySlug(slug);
-  if (!invite || !invite.publishedAt) notFound();
+
+  if (!invite) {
+    // Không có trực tiếp — có thể đây là slug cũ trước khi chủ thiệp đổi tên.
+    // Slug đang sống trên `invites` luôn được tra ở trên trước, nên không có
+    // chuyện một redirect che mất thiệp thật đang đứng đúng slug đó.
+    const targetId = await getSlugRedirectTarget(slug);
+    const target = targetId ? await getInviteById(targetId) : null;
+    if (target?.publishedAt) permanentRedirect(`/thiep/${target.slug}`);
+    notFound();
+  }
+  if (!invite.publishedAt) notFound();
 
   const template = await getTemplateById(invite.templateId);
   if (!template) notFound();
