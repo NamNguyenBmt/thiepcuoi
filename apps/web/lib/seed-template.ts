@@ -281,13 +281,13 @@ export function fullTemplate(): TemplateDoc {
     eyebrow('sec-calendar', Y.calendar + 48, 'Ngày chúng mình về chung một nhà'),
     createNode('Calendar', 'sec-calendar', {
       top: Y.calendar + 90, left: 60, width: 380, height: 300,
-      month: CEREMONY_DAY, markedDates: [CEREMONY_DAY],
+      month: '{{events.0.datetime}}', markedDates: ['{{events.0.datetime}}'],
       fontFamily: SANS, fontSize: 13, themeColor: ROSE, color: INK,
       weekStartsOn: 1, showLunar: false,
     }),
     createNode('CountDown', 'sec-calendar', {
       top: Y.calendar + 420, left: 50, width: 400, height: 96,
-      targetDate: CEREMONY_DAY, themeColor: WINE, color: '#ffffff',
+      targetDate: '{{events.0.datetime}}', themeColor: WINE, color: '#ffffff',
       fontFamily: SANS, fontSize: 15, spacing: 10,
       expiredText: 'Chúng mình đã về chung một nhà',
     }),

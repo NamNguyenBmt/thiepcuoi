@@ -1,8 +1,9 @@
 /**
  * Nạp mẫu dựng sẵn + ảnh mồi vào một database ĐÃ CÓ dữ liệu.
  *
- *   npm run seed:templates            # chỉ thêm mẫu còn thiếu
- *   npm run seed:templates -- --force # ghi đè cả mẫu đã có
+ *   npm run seed:templates                            # chỉ thêm mẫu còn thiếu
+ *   npm run seed:templates -- --force                 # ghi đè mọi mẫu dựng sẵn
+ *   npm run seed:templates -- --force ngot-ngao       # ghi đè đúng mẫu nêu tên
  *
  * Vì sao cần: `seedIfEmpty` trong `lib/sql.ts` chỉ chạy khi bảng `users` còn
  * trống — đúng cho lần dựng đầu, nhưng nghĩa là mọi mẫu thêm về sau không bao
@@ -26,6 +27,14 @@ import { fullTemplate } from '../lib/seed-template';
 import { sweetTemplate } from '../lib/seed-template-42';
 
 const force = process.argv.includes('--force');
+/**
+ * Tham số không phải cờ = danh sách slug được phép đụng tới. Không nêu tên thì
+ * áp cho tất cả. Có bộ lọc này vì `--force` trần sẽ cuốn theo cả mẫu mà chủ
+ * thiệp đã sửa trong editor — chỉ muốn cập nhật một mẫu mà mất bài của họ ở
+ * mẫu khác là cái giá không đáng.
+ */
+const only = new Set(process.argv.slice(2).filter((a) => !a.startsWith('--')));
+const wanted = (slug: string) => only.size === 0 || only.has(slug);
 const sql = await getSql();
 
 /**
@@ -68,6 +77,10 @@ console.log(`Ảnh mồi: ${assets.length} tấm đã ghi vào kho, ${added} hà
 // ── Mẫu ──────────────────────────────────────────────────────────────────
 
 for (const doc of [demoTemplate(), fullTemplate(), sweetTemplate()]) {
+  if (!wanted(doc.slug)) {
+    console.log(`  · bỏ qua "${doc.name}" (${doc.slug}) — không nằm trong danh sách chỉ định`);
+    continue;
+  }
   const packed = packDoc(doc);
   const { rows } = await sql.query<{ id: string }>('select id from templates where slug = $1', [doc.slug]);
   const existing = rows[0];

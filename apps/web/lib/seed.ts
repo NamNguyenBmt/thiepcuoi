@@ -85,12 +85,12 @@ export function demoTemplate(): TemplateDoc {
     }),
     createNode('Calendar', 'sec-info', {
       top: 900, left: 60, width: 380, height: 300,
-      month: WEDDING_DAY, markedDates: [WEDDING_DAY],
+      month: '{{events.0.datetime}}', markedDates: ['{{events.0.datetime}}'],
       fontFamily: 'Quicksand', themeColor: '#c98b8b',
     }),
     createNode('CountDown', 'sec-info', {
       top: 1230, left: 60, width: 380, height: 96,
-      targetDate: WEDDING_DAY, themeColor: '#7a2c2c', fontFamily: 'Quicksand',
+      targetDate: '{{events.0.datetime}}', themeColor: '#7a2c2c', fontFamily: 'Quicksand',
     }),
     createNode('Map', 'sec-info', {
       top: 1370, left: 170, width: 160, height: 40,

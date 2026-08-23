@@ -21,7 +21,6 @@
 import { createEmptyDoc, createNode } from '@thiepcuoi/schema';
 import type { TemplateNode, TemplateDoc, EntranceEffect } from '@thiepcuoi/schema';
 import { SEED_KEYS } from './seed-assets';
-import { CEREMONY_DAY } from './seed-template';
 
 // ─────────────────────────── Bảng màu ───────────────────────────
 
@@ -399,7 +398,7 @@ export function sweetTemplate(): TemplateDoc {
     }),
     createNode('CountDown', 'sec-intro', {
       top: 1025.9, left: 108.5, width: 310, height: 65,
-      targetDate: CEREMONY_DAY,
+      targetDate: '{{events.0.datetime}}',
       themeColor: COUNTDOWN, color: '#ffffff',
       fontFamily: SYS, fontSize: 14, spacing: 8,
       expiredText: 'Chúng mình đã về chung một nhà',
@@ -680,8 +679,8 @@ export function sweetTemplate(): TemplateDoc {
     }),
     createNode('Calendar', 'sec-date', {
       top: 5509.2, left: 176.9, width: 311.1, height: 278.5, zIndex: 40,
-      month: CEREMONY_DAY,
-      markedDates: [CEREMONY_DAY],
+      month: '{{events.0.datetime}}',
+      markedDates: ['{{events.0.datetime}}'],
       markerIcon: SEED_KEYS.heart,
       themeColor: ROSE, color: '#000000',
       fontFamily: SYS, fontSize: 14,

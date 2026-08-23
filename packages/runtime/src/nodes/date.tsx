@@ -1,10 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
+import { resolveTokens } from '@thiepcuoi/schema';
 import { NodeShell } from '../NodeShell';
 import type { NodeProps } from '../NodeShell';
 import { useRuntime } from '../context';
 import { imageUrl } from '../image';
 
 const WEEKDAY_LABELS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+
+/**
+ * Ngày của Calendar/CountDown được phép là token: "{{events.0.datetime}}".
+ *
+ * Không có bước này thì lịch và đồng hồ đếm ngược đóng đinh vào ngày cưới của
+ * cặp đôi đầu tiên dựng mẫu, trong khi phần chữ ngay bên cạnh lấy từ token và
+ * hiện đúng ngày của thiệp — hai con số đá nhau ngay trên cùng một màn hình.
+ *
+ * Trả về chuỗi rỗng khi không ra được ngày hợp lệ (thiệp chưa nhập ngày, hoặc
+ * token gõ sai). Chỗ gọi tự quyết định cách xử sự; không nơi nào được phép đưa
+ * `Invalid Date` vào tính toán.
+ */
+function resolveDate(raw: string, data: unknown, mode: 'editor' | 'render'): string {
+  const value = raw.includes('{{') ? resolveTokens(raw, data, mode).trim() : raw;
+  return Number.isNaN(Date.parse(value)) ? '' : value;
+}
 
 /** Lưới ngày của tháng, đã đệm ô trống đầu tháng theo weekStartsOn */
 function monthGrid(monthIso: string, weekStartsOn: 0 | 1): (number | null)[] {
@@ -21,13 +38,20 @@ function monthGrid(monthIso: string, weekStartsOn: 0 | 1): (number | null)[] {
 }
 
 export function CalendarNode({ node }: NodeProps<'Calendar'>) {
-  const { assetBase, dpr } = useRuntime();
+  const { assetBase, dpr, data, mode } = useRuntime();
   const p = node.props;
 
+  // Thiếu ngày thì vẽ tháng hiện tại: lưới trống hoàn toàn nhìn như lỗi render
+  const month = resolveDate(p.month, data, mode) || new Date().toISOString();
+  const markedDates = useMemo(
+    () => p.markedDates.map((d) => resolveDate(d, data, mode)).filter(Boolean),
+    [p.markedDates, data, mode],
+  );
+
   const { cells, marked, labels } = useMemo(() => {
-    const base = new Date(p.month);
+    const base = new Date(month);
     const marks = new Set(
-      p.markedDates
+      markedDates
         .map((iso) => new Date(iso))
         .filter((d) => d.getFullYear() === base.getFullYear() && d.getMonth() === base.getMonth())
         .map((d) => d.getDate()),
@@ -35,8 +59,8 @@ export function CalendarNode({ node }: NodeProps<'Calendar'>) {
     const heads = p.weekStartsOn === 1
       ? [...WEEKDAY_LABELS.slice(1), WEEKDAY_LABELS[0]!]
       : WEEKDAY_LABELS;
-    return { cells: monthGrid(p.month, p.weekStartsOn), marked: marks, labels: heads };
-  }, [p.month, p.markedDates, p.weekStartsOn]);
+    return { cells: monthGrid(month, p.weekStartsOn), marked: marks, labels: heads };
+  }, [month, markedDates, p.weekStartsOn]);
 
   const marker = p.markerIcon ? imageUrl(assetBase, p.markerIcon, 64, dpr, { format: 'png' }) : null;
 
@@ -120,7 +144,9 @@ function remainingUntil(targetIso: string, now: number): Remaining {
 }
 
 export function CountDownNode({ node }: NodeProps<'CountDown'>) {
+  const { data, mode } = useRuntime();
   const p = node.props;
+  const targetDate = resolveDate(p.targetDate, data, mode);
 
   // SSR và client lệch nhau vài giây là chuyện chắc chắn xảy ra: render lần đầu
   // bằng mốc 0 rồi mới chạy đồng hồ trong effect, để không có hydration mismatch.
@@ -133,7 +159,11 @@ export function CountDownNode({ node }: NodeProps<'CountDown'>) {
 
   const r = now == null
     ? { days: 0, hours: 0, minutes: 0, seconds: 0, expired: false }
-    : remainingUntil(p.targetDate, now);
+    : remainingUntil(targetDate, now);
+
+  // Chưa có ngày cưới thì không vẽ gì. Đếm ngược rỗng sẽ rơi vào nhánh "đã qua"
+  // và thông báo hai người đã về chung một nhà — sai, và sai một cách khó chịu.
+  if (!targetDate) return null;
 
   const items: Array<[number, string]> = [
     [r.days, p.labels.days],
