@@ -390,16 +390,18 @@ function giftCard(
       img: '', slot: opts.qrSlot, bg: '#ffffff', pad: 3.3, z: z + 16, anim: STILL,
     }),
     text(section, {
-      top: top + 25.3, left: textMid - 75, width: 150, height: 24,
-      text: opts.role, size: 18, color: '#000000', z: z + 3, anim: STILL,
+      top: top + 22, left: textMid - 75, width: 150, height: 30,
+      text: opts.role, font: FORMAL, size: 24, weight: '400', color: INK, z: z + 3, anim: STILL,
     }),
     text(section, {
-      top: top + 58, left: textMid - 85, width: 170, height: 26,
-      text: opts.nameToken, size: 18, color: '#000000', z: z + 4, anim: STILL,
+      top: top + 55, left: textMid - 85, width: 170, height: 32,
+      text: opts.nameToken, font: FORMAL, size: 24, weight: '400', color: INK, z: z + 4, anim: STILL,
     }),
+    // Số tài khoản giữ font sans: đây là dãy số người ta phải đọc để chuyển
+    // khoản, chữ số viết tay là mời nhập nhầm một con số.
     text(section, {
-      top: top + 92, left: textMid - 80, width: 160, height: 20,
-      text: opts.accountToken, size: 12, color: '#000000', z: z + 5, anim: STILL,
+      top: top + 94, left: textMid - 80, width: 160, height: 20,
+      text: opts.accountToken, size: 12, color: INK, z: z + 5, anim: STILL,
     }),
   ];
 }
@@ -599,26 +601,32 @@ export function sweetTemplate(): TemplateDoc {
       top: 2577.7, left: 22.5, width: 70.1, height: 56.1, img: SEED_KEYS.sparkle, z: 4, anim: MEDIA_RIGHT,
     }),
     box('sec-sweet', {
-      top: 2681.1, left: 134, width: 352.7, height: 348.7,
+      top: 2681.1, left: 150, width: 338, height: 334,
       fill: BLUSH, opacity: 0.15, border: [4, BRICK], z: 5,
     }),
     photo('sec-sweet', {
-      top: 2695.3, left: 150.3, width: 320.2, height: 320.2, img: SEED_KEYS.album[0]!, slot: 'album1', z: 6,
+      top: 2695.3, left: 166, width: 306, height: 306, img: SEED_KEYS.album[0]!, slot: 'album1', z: 6,
     }),
     text('sec-sweet', {
       top: 2608.5, left: 24.4, width: 463.8, height: 53,
       text: 'SWEET WEDDING', font: SYS, size: 23, color: BRICK, spacing: 16, z: 7,
     }),
-    // Ảnh vuông bắt đầu ở x=150, nên hai chữ này phải nằm gọn bên trái mốc đó —
-    // canh trái thay vì canh giữa, không thì chữ trôi vào giữa tấm ảnh.
+    /**
+     * Mốc phải né là **khung viền** ở x=150, không phải mép ảnh.
+     *
+     * "Marry" ở Great Vibes 48px rộng 124px, canh trái từ x=8 nên chạm 132 —
+     * còn 18px hở, đủ cho cái đuôi chữ "y" vươn ra ngoài bề rộng danh nghĩa
+     * của nét chữ. Font thư pháp luôn vẽ tràn khỏi ô của nó, nên chừa lề chứ
+     * đừng canh sát mép.
+     */
     text('sec-sweet', {
-      top: 2738.7, left: 14, width: 200, height: 70,
-      text: 'Marry', font: FORMAL, size: 58, weight: '400', color: BRICK,
+      top: 2740, left: 8, width: 160, height: 64,
+      text: 'Marry', font: FORMAL, size: 48, weight: '400', color: BRICK,
       align: 'left', z: 8, anim: IN_RIGHT,
     }),
     text('sec-sweet', {
-      top: 2822, left: 44, width: 180, height: 70,
-      text: 'me?', font: FORMAL, size: 58, weight: '400', color: BRICK,
+      top: 2818, left: 34, width: 140, height: 64,
+      text: 'me?', font: FORMAL, size: 48, weight: '400', color: BRICK,
       align: 'left', z: 9, anim: IN_RIGHT,
     }),
     photo('sec-sweet', {
@@ -818,8 +826,8 @@ export function sweetTemplate(): TemplateDoc {
       enableMessage: false,
       submitText: 'Gửi xác nhận',
       successText: 'Cảm ơn bạn! Hẹn gặp trong ngày vui.',
-      color: '#333333', buttonColor: ROSE, buttonTextColor: '#ffffff',
-      fontFamily: SANS, fontSize: 14,
+      color: INK, buttonColor: ROSE, buttonTextColor: '#ffffff',
+      fontFamily: FORMAL, fontSize: 21,
       backgroundColor: '#ffffff',
       padding: [16, 16, 16, 16],
       ...fx('fade', 0),
@@ -827,16 +835,16 @@ export function sweetTemplate(): TemplateDoc {
 
     // ═══════════ Mừng cưới ═══════════
     text('sec-gift', {
-      top: 7368.4, left: 29.6, width: 449, height: 99,
+      top: 7355, left: 29.6, width: 449, height: 128,
       text:
         'Mình rất muốn được chụp chung với bạn những tấm hình kỷ niệm vì vậy ' +
         'hãy đến sớm hơn một chút bạn yêu nhé! Đám cưới của chúng mình sẽ trọn ' +
         'vẹn hơn khi có thêm lời chúc phúc và sự hiện diện của các bạn',
-      font: SANS, size: 15, color: '#000000', lineHeight: '1.65', spacing: 1, z: 61, anim: STILL,
+      font: FORMAL, size: 21, weight: '400', color: INK, lineHeight: '1.5', z: 61, anim: STILL,
     }),
     text('sec-gift', {
-      top: 7520.9, left: 91.1, width: 315.6, height: 31,
-      text: 'Gửi quà mừng', font: SYS, size: 26, color: ROSE, upper: true, z: 59, anim: STILL,
+      top: 7514, left: 91.1, width: 315.6, height: 46,
+      text: 'Gửi quà mừng', font: FORMAL, size: 40, weight: '400', color: ROSE, z: 59, anim: STILL,
     }),
     ...giftCard('sec-gift', 7616.8, 'left', {
       role: 'Cô dâu',

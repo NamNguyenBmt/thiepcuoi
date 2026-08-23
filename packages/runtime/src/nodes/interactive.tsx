@@ -28,11 +28,19 @@ export function RsvpFormNode({ node }: NodeProps<'RsvpForm'>) {
   const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
 
   const label: CSSProperties = { fontSize: p.fontSize * 0.8, opacity: 0.8, display: 'block', marginBottom: 4 };
+  /**
+   * Ô nhập KHÔNG kế thừa font của khối.
+   *
+   * Nhãn và tiêu đề đi theo thiết kế của mẫu, kể cả font thư pháp. Nhưng thứ
+   * khách vừa gõ thì họ phải đọc lại được để soát trước khi gửi — tên viết
+   * bằng nét thư pháp nghiêng là không soát nổi. Đây là chỗ chức năng thắng
+   * thẩm mỹ, nên khoá cứng về font hệ thống.
+   */
   const field: CSSProperties = {
     width: '100%',
     padding: '8px 10px',
-    fontSize: p.fontSize * 0.85,
-    fontFamily: 'inherit',
+    fontSize: p.fontSize * 0.8,
+    fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
     color: p.color,
     background: 'transparent',
     border: `1px solid ${p.borderColor || '#e0e0e0'}`,
