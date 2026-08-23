@@ -3,16 +3,23 @@
 /**
  * Tim bay quanh tấm thiệp.
  *
- * Hai lớp khác nhau, cố ý:
- *   - nền: vài chục quả trôi chậm, có sẵn từ lúc mở trang, chỉ để trang không
- *     trống trải ở hai bên khung thiệp trên màn hình rộng;
- *   - bắn: loạt tim bay vọt lên khi khách bấm nút, sống vài giây rồi tự dọn.
+ * Hai lớp khác nhau, cố ý — và nằm ở hai độ cao khác nhau:
+ *
+ *   - **nền**: vài chục quả trôi chậm, có sẵn từ lúc mở trang. Trên màn hình
+ *     rộng nó nằm *dưới* khung thiệp, chỉ để hai bên trang khỏi trống trải.
+ *     Nhưng dưới 900px thì khung thiệp phủ kín bề ngang và nền của nó đục, nên
+ *     ở đó lớp này phải vượt lên trên — không thì cả hiệu ứng biến mất đúng
+ *     trên thiết bị mà hầu hết khách mời dùng để mở thiệp.
+ *   - **bắn**: loạt tim bay vọt lên khi khách bấm nút. Luôn nằm trên khung
+ *     thiệp ở mọi bề ngang: đây là phản hồi cho một cú chạm, mà phản hồi bị
+ *     che thì người ta tưởng nút hỏng và bấm tiếp.
  *
  * Nằm ngoài canvas nên không liên quan tới `effects.falling` của template —
  * cái đó là hiệu ứng bên trong tấm thiệp và người thiết kế bật/tắt được.
  */
 
 import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 
 const GLYPHS = ['❤', '💕', '💖', '🤍'];
 
@@ -84,9 +91,21 @@ export function HeartRain({ burstSignal, burstSize = 12 }: HeartRainProps) {
     return () => clearTimeout(timer);
   }, [burstSignal, burstSize]);
 
+  const layer: CSSProperties = {
+    position: 'fixed',
+    inset: 0,
+    overflow: 'hidden',
+    pointerEvents: 'none',
+  };
+
   return (
-    <div aria-hidden style={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 1 }}>
+    <>
       <style>{`
+        /* Dưới khung thiệp trên màn rộng, trên khung thiệp khi khung phủ kín */
+        .tc-heart-drift { z-index: 1; }
+        @media (max-width: 899px) { .tc-heart-drift { z-index: 3; } }
+        .tc-heart-burst { z-index: 3; }
+
         @keyframes tc-drift {
           0%   { transform: translate3d(0, -12vh, 0) rotate(0deg); }
           100% { transform: translate3d(0, 112vh, 0) rotate(28deg); }
@@ -101,6 +120,7 @@ export function HeartRain({ burstSignal, burstSize = 12 }: HeartRainProps) {
         }
       `}</style>
 
+      <div aria-hidden className="tc-heart-drift" style={layer}>
       {drifts.map((d) => (
         <span
           key={`d-${d.id}`}
@@ -118,7 +138,9 @@ export function HeartRain({ burstSignal, burstSize = 12 }: HeartRainProps) {
           {d.glyph}
         </span>
       ))}
+      </div>
 
+      <div aria-hidden className="tc-heart-burst" style={layer}>
       {bursts.map((b) => (
         <span
           key={`b-${b.id}`}
@@ -136,6 +158,7 @@ export function HeartRain({ burstSignal, burstSize = 12 }: HeartRainProps) {
           {b.glyph}
         </span>
       ))}
-    </div>
+      </div>
+    </>
   );
 }
