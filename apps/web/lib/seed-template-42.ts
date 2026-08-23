@@ -182,6 +182,17 @@ function fx(effectType: EntranceEffect, effectDelay = 0, effectDuration = 1.3) {
   };
 }
 
+/**
+ * Viền trắng mảnh cho chữ nằm trên ảnh.
+ *
+ * `paintOrder: stroke fill` (xem runtime/nodes/basic.tsx) vẽ viền TRƯỚC rồi phủ
+ * ruột chữ lên, nên nửa trong của nét viền bị che — bề dày 1.2 cho ra quầng
+ * sáng khoảng 0.6px quanh chữ. Đo bằng mắt trên chính tấm ảnh cưới: 1.8 thì
+ * nét thư pháp rỗng ruột và "INVITATION" thành chữ viền, 1.2 thì ruột chữ còn
+ * đặc mà vẫn đọc được trên vùng áo vest tối. Giữ nguyên màu đỏ rượu.
+ */
+const INK_ON_PHOTO: [number, string] = [1.2, '#ffffff'];
+
 /** Chữ và ảnh vào cùng hướng nhưng ảnh chậm hơn 0.2s, nên chữ luôn tới trước */
 const IN_UP = fx('slide-up');
 const IN_LEFT = fx('slide-left');
@@ -209,6 +220,8 @@ interface TextOpts {
   upper?: boolean;
   rotation?: number;
   z?: number;
+  /** Viền quanh nét chữ: [bề dày px, màu] — để chữ đọc được khi nằm trên ảnh */
+  stroke?: [number, string];
   anim?: ReturnType<typeof fx>;
 }
 
@@ -224,6 +237,7 @@ function text(section: string, o: TextOpts) {
     letterSpacing: `${o.spacing ?? 0}px`,
     lineHeight: o.lineHeight ?? 'normal',
     textTransform: o.upper ? 'uppercase' : 'none',
+    textStroke: o.stroke ? { width: o.stroke[0], color: o.stroke[1] } : null,
     rotation: o.rotation ?? 0,
     zIndex: o.z ?? 0,
     ...(o.anim ?? IN_UP),
@@ -703,13 +717,20 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
     photo('sec-intro', {
       top: 720, left: 2, width: 495, height: 697, img: SEED_KEYS.cover, slot: 'cover',
     }),
+    /**
+     * Tấm kính giờ gần như trong: chỉ còn 4px nhoè và một lớp trắng 8% đủ để
+     * ảnh không đâm thẳng vào chữ.
+     *
+     * Alpha nằm trong chính màu nền, không mượn `opacity` của node: opacity làm
+     * mờ cả tấm nền lẫn mọi thứ vẽ trong nó, và từng bị hiệu ứng xuất hiện xoá
+     * mất (xem animation.ts).
+     *
+     * Đổi lại, nền sau chữ không còn phẳng mà đầy chi tiết và sáng tối lẫn lộn
+     * — nên chữ trong khối này phải có viền, xem `INK_ON_PHOTO` bên dưới.
+     */
     box('sec-intro', {
-      // Alpha nằm trong chính màu nền, không mượn `opacity` của node: opacity
-      // làm mờ cả tấm nền lẫn mọi thứ vẽ trong nó, và từng bị hiệu ứng xuất
-      // hiện xoá mất (xem animation.ts). Có alpha thì `frost` mới thấy tác
-      // dụng — làm nhoè bao nhiêu cũng vô nghĩa sau một lớp trắng đặc.
       top: 1040, left: 31.9, width: 448.4, height: 372,
-      fill: 'rgba(255, 255, 255, 0.10)', frost: 26,
+      fill: 'rgba(255, 255, 255, 0.08)', frost: 4,
     }),
     createNode('CountDown', 'sec-intro', {
       top: 1025.9, left: 108.5, width: 310, height: 65,
@@ -722,6 +743,7 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
     text('sec-intro', {
       top: 1098, left: 38.3, width: 442, height: 34,
       text: 'INVITATION', font: SYS, size: 31, color: DEEP, spacing: 11,
+      stroke: INK_ON_PHOTO,
     }),
     text('sec-intro', {
       top: 1150, left: 40, width: 420, height: 250,
@@ -733,6 +755,7 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
         'niềm hạnh phúc của chúng mình cùng bạn.<br>' +
         'Trân trọng kính mời bạn đến dự lễ cưới của chúng mình',
       font: SCRIPT, size: 21, weight: '700', color: DEEP, lineHeight: '1.4',
+      stroke: INK_ON_PHOTO,
     }),
 
     // ═══════════ Lễ thành hôn ═══════════
