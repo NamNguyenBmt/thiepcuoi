@@ -415,11 +415,17 @@ export function GiftQrNode({ node }: NodeProps<'GiftQr'>) {
                     src={imageUrl(assetBase, acc.qrCode, 400, dpr, { format: 'png' })}
                     alt={`QR ${acc.displayName}`}
                     style={{
+                      // `auto` + hai cái max, KHÔNG phải `width: 100%`: khi
+                      // chiều cao bị chặn thì ô ảnh vẫn giữ nguyên bề ngang và
+                      // `objectFit: contain` kê hai dải trắng hai bên, nên mã
+                      // thu nhỏ mà chỗ trống thì vẫn chiếm. Để auto thì chính ô
+                      // ảnh co lại vừa khít tấm hình.
                       display: 'block',
-                      width: '100%',
+                      margin: '0 auto',
+                      width: 'auto',
                       height: 'auto',
-                      maxHeight: '60vh',
-                      objectFit: 'contain',
+                      maxWidth: '100%',
+                      maxHeight: '70vh',
                     }}
                   />
                 )}
