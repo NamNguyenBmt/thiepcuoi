@@ -366,15 +366,21 @@ export function GiftQrNode({ node }: NodeProps<'GiftQr'>) {
             padding: 16,
           }}
         >
+          {/*
+            Hộp thoại này tồn tại để khách QUÉT một mã QR, nên bề ngang của nó
+            là bề ngang của mã. 420 thay vì 360, và `min(...)` ăn theo cạnh ngắn
+            của màn hình để trên điện thoại nằm ngang mã không bị tràn ra ngoài
+            rồi phải cuộn mới thấy hết.
+          */}
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
               background: '#fff',
               borderRadius: 12,
               padding: 20,
-              maxWidth: 360,
+              maxWidth: 'min(420px, 92vmin)',
               width: '100%',
-              maxHeight: '80vh',
+              maxHeight: '90vh',
               overflowY: 'auto',
               fontFamily: 'system-ui, sans-serif',
             }}
@@ -393,30 +399,55 @@ export function GiftQrNode({ node }: NodeProps<'GiftQr'>) {
             {accounts.map((acc) => (
               <div key={acc.id} style={{ textAlign: 'center', marginBottom: 20 }}>
                 <div style={{ fontWeight: 600, marginBottom: 8 }}>{acc.displayName}</div>
+                {/*
+                  Trải hết bề ngang thay vì đóng cứng 200px. Ảnh QR chủ thiệp
+                  tải lên thường là tấm thẻ VietQR đầy đủ — có logo ngân hàng,
+                  tên và số tài khoản in quanh — nên ô vuông quét được chỉ chiếm
+                  quãng giữa. Khung 200px làm phần quét được co xuống còn hơn
+                  100px, tới ngưỡng máy phải rà sát mới bắt.
+
+                  `height: auto` để thẻ VietQR (cao hơn rộng) không bị bóp méo.
+                  Xin ảnh theo bề ngang CSS (400) — `imageUrl` tự nhân DPR rồi
+                  làm tròn lên bậc, nên màn 2x nhận ảnh 800px.
+                */}
                 {acc.qrCode && (
                   <img
-                    src={imageUrl(assetBase, acc.qrCode, 240, dpr, { format: 'png' })}
+                    src={imageUrl(assetBase, acc.qrCode, 400, dpr, { format: 'png' })}
                     alt={`QR ${acc.displayName}`}
-                    style={{ width: 200, height: 200, objectFit: 'contain' }}
+                    style={{
+                      display: 'block',
+                      width: '100%',
+                      height: 'auto',
+                      maxHeight: '60vh',
+                      objectFit: 'contain',
+                    }}
                   />
                 )}
-                <div style={{ fontSize: 13, marginTop: 8 }}>{acc.bank}</div>
-                <div style={{ fontSize: 13 }}>{acc.name}</div>
-                <button
-                  type="button"
-                  onClick={() => copy(acc.accountNumber, acc.id)}
-                  style={{
-                    marginTop: 6,
-                    padding: '6px 12px',
-                    fontSize: 13,
-                    border: '1px solid #ddd',
-                    borderRadius: 6,
-                    background: '#fafafa',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {copied === acc.id ? 'Đã chép' : acc.accountNumber}
-                </button>
+                {/*
+                  Ba dòng dưới chỉ hiện khi có dữ liệu. Tấm thẻ VietQR đã in sẵn
+                  tên và số tài khoản lên ảnh, nên nhiều người bỏ trống mấy ô
+                  này — mà nút chép rỗng thì thành một viên thuốc xám trống trơn
+                  ngay dưới mã, bấm vào chép được đúng chuỗi rỗng.
+                */}
+                {acc.bank && <div style={{ fontSize: 13, marginTop: 8 }}>{acc.bank}</div>}
+                {acc.name && <div style={{ fontSize: 13 }}>{acc.name}</div>}
+                {acc.accountNumber && (
+                  <button
+                    type="button"
+                    onClick={() => copy(acc.accountNumber, acc.id)}
+                    style={{
+                      marginTop: 6,
+                      padding: '6px 12px',
+                      fontSize: 13,
+                      border: '1px solid #ddd',
+                      borderRadius: 6,
+                      background: '#fafafa',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {copied === acc.id ? 'Đã chép' : acc.accountNumber}
+                  </button>
+                )}
               </div>
             ))}
             <button
