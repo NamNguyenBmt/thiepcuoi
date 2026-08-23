@@ -165,12 +165,18 @@ const ENVELOPE_CSS = `
   top: calc(var(--eh) + 50px); left: 50%; transform: translateX(-50%);
   animation: tc-env-shadow 3s ease-in-out infinite;
 }
+/*
+ * "perspective" là thứ biến cú lật nắp từ một hình tam giác bị bóp dẹt thành
+ * một cái nắp thật sự ngả về phía người xem. Không có nó, rotateX chiếu song
+ * song: nắp chỉ hẹp dần rồi nở ra, không ai đọc ra là đang mở bì thư.
+ */
 .tc-env-box {
   position: absolute; inset: 0;
   border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;
   background-color: var(--env-body);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   animation: tc-env-float 3s ease-in-out infinite;
+  perspective: 1100px;
   z-index: 1;
 }
 .tc-env-box.is-closed { cursor: pointer; }
@@ -182,13 +188,23 @@ const ENVELOPE_CSS = `
   border-top: calc(var(--eh) * 0.54) solid var(--env-flap);
   transform-origin: top;
 }
+/*
+ * Nắp đợi 0.42s — đúng lúc dấu xi vừa bật khỏi mép giấy. Lật trước khi xi rời
+ * ra thì thành ra nắp xé toạc qua con dấu.
+ *
+ * "brightness" sáng dần lên vì lật xong là ta đang nhìn MẶT TRONG của tờ giấy,
+ * mặt chưa từng ăn mực. Cùng một màu ở cả hai mặt là chỗ lộ ra ngay rằng đây
+ * chỉ là một hình tam giác quay ngược.
+ */
 .tc-env-box.is-open .tc-env-flap {
-  transform: rotateX(180deg); z-index: 1;
-  transition: transform 1.2s ${EASE}, z-index 1.2s;
+  transform: rotateX(178deg); z-index: 1;
+  filter: brightness(1.14);
+  transition: transform 1.05s 0.42s ${EASE}, z-index 1.05s 0.42s, filter 0.6s 0.62s linear;
 }
 .tc-env-box.is-closed .tc-env-flap {
   transform: rotateX(0deg); z-index: 5;
-  transition: transform 0.8s 0.8s ${EASE}, z-index 0.8s;
+  filter: brightness(1);
+  transition: transform 0.8s 0.8s ${EASE}, z-index 0.8s, filter 0.4s;
 }
 .tc-env-pocket {
   border-left: calc(var(--ew) / 2) solid var(--env-side);
@@ -199,10 +215,24 @@ const ENVELOPE_CSS = `
 }
 .tc-env-seal {
   position: absolute; top: calc(var(--eh) * 0.4); left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, 0);
   width: calc(var(--eh) * 0.195); height: calc(var(--eh) * 0.195);
   background-size: contain; background-repeat: no-repeat; background-position: center;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.28));
   z-index: 10;
+}
+/* Dấu xi là chỗ tay người ta định chạm — nhấc nhẹ lên để nói ra điều đó */
+.tc-env-box.is-closed .tc-env-seal { transition: transform 0.25s ease-out; }
+.tc-env-box.is-closed:hover .tc-env-seal,
+.tc-env-box.is-closed:focus-visible .tc-env-seal {
+  transform: translate(-50%, -2px) scale(1.07);
+}
+/*
+ * Bong ra chứ không mờ dần: xi gắn keo thì phải bật khỏi giấy, nghiêng đi rồi
+ * rơi xuống. Nảy nhẹ ở 22% là lúc lớp keo đứt.
+ */
+.tc-env-box.is-open .tc-env-seal {
+  animation: tc-env-seal-break 0.66s cubic-bezier(0.34, 1.28, 0.64, 1) forwards;
 }
 .tc-env-letter {
   position: relative; width: 90%; height: 90%; top: 5%;
@@ -218,7 +248,7 @@ const ENVELOPE_CSS = `
 .tc-env-box.is-open .tc-env-letter {
   transform: translateY(calc(var(--eh) * -0.475)); z-index: 2;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
-  transition: transform 1s 0.5s ${EASE}, z-index 0.5s;
+  transition: transform 1.05s 1.05s ${EASE}, z-index 1.05s;
 }
 .tc-env-box.is-closed .tc-env-letter {
   transform: translateY(0); z-index: 1;
@@ -250,13 +280,19 @@ const ENVELOPE_CSS = `
   animation-direction: normal, alternate, normal;
 }
 .tc-env-box.is-open .tc-env-heart.h1 {
-  animation-duration: 4s, 2s, 0.5s; animation-iteration-count: 1, 4, 1; animation-delay: 1.2s;
+  animation-duration: 4s, 2s, 0.5s; animation-iteration-count: 1, 4, 1; animation-delay: 1.95s;
 }
 .tc-env-box.is-open .tc-env-heart.h2 {
-  animation-duration: 5s, 4s, 0.5s; animation-iteration-count: 1, 2, 1; animation-delay: 1.4s;
+  animation-duration: 5s, 4s, 0.5s; animation-iteration-count: 1, 2, 1; animation-delay: 2.15s;
 }
 .tc-env-box.is-open .tc-env-heart.h3 {
-  animation-duration: 7s, 2s, 0.5s; animation-iteration-count: 1, 6, 1; animation-delay: 1.6s;
+  animation-duration: 7s, 2s, 0.5s; animation-iteration-count: 1, 6, 1; animation-delay: 2.35s;
+}
+@keyframes tc-env-seal-break {
+  0%   { transform: translate(-50%, 0) scale(1) rotate(0deg); opacity: 1; }
+  22%  { transform: translate(-50%, -6px) scale(1.16) rotate(-8deg); opacity: 1; }
+  55%  { transform: translate(calc(-50% + 10px), 34px) scale(1.02) rotate(16deg); opacity: 1; }
+  100% { transform: translate(calc(-50% + 26px), 150px) scale(0.78) rotate(46deg); opacity: 0; }
 }
 @keyframes tc-env-float {
   0%, 100% { transform: translateY(0); }

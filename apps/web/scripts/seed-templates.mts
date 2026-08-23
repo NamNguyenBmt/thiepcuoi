@@ -25,9 +25,7 @@ loadEnvLocal();
 import { packDoc } from '@thiepcuoi/schema';
 import { getSql } from '../lib/sql';
 import { buildSeedAssets } from '../lib/seed-assets';
-import { demoTemplate } from '../lib/seed';
-import { fullTemplate } from '../lib/seed-template';
-import { sweetTemplate } from '../lib/seed-template-42';
+import { builtinTemplates } from '../lib/seed';
 
 const force = process.argv.includes('--force');
 /**
@@ -79,15 +77,7 @@ console.log(`Ảnh mồi: ${assets.length} tấm đã ghi vào kho, ${added} hà
 
 // ── Mẫu ──────────────────────────────────────────────────────────────────
 
-const built = [
-  demoTemplate(),
-  fullTemplate(),
-  sweetTemplate(),
-  sweetTemplate('vu-quy'),
-  sweetTemplate('thanh-hon'),
-];
-
-for (const doc of built) {
+for (const doc of builtinTemplates()) {
   if (!wanted(doc.slug)) {
     console.log(`  · bỏ qua "${doc.name}" (${doc.slug}) — không nằm trong danh sách chỉ định`);
     continue;

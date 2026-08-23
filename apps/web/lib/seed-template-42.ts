@@ -103,6 +103,11 @@ const SECTION_NAME: Record<SectionKey, string> = {
   timeline: 'Trình tự', rsvp: 'Xác nhận', gift: 'Mừng cưới', thanks: 'Cảm ơn',
 };
 
+/** Hai cột "Nhà Trai" / "Nhà Gái" ở phần "Lễ …" — đối xứng quanh trục giữa */
+const VOWS_W = 226;
+const VOWS_L = 10;
+const VOWS_R = 500 - VOWS_W - VOWS_L;
+
 /** Khoảng cách dọc giữa hai khối tiệc trên bản in cả hai buổi */
 const PARTY_GAP = 600;
 
@@ -446,7 +451,7 @@ function giftCard(
   section: string,
   top: number,
   side: 'left' | 'right',
-  opts: { role: string; nameToken: string; accountToken: string; photoKey: string; photoSlot: string; qrSlot: string; z: number },
+  opts: { role: string; nameToken: string; accountToken: string; photoKey: string; photoSlot: string; accountIndex: number; z: number },
 ) {
   const { z } = opts;
   const ringLeft = side === 'left' ? 24.4 : 318.1;
@@ -466,13 +471,32 @@ function giftCard(
       top: top + 5.1, left: cardLeft, width: 278, height: 150,
       fill: '#e0e0e0', opacity: 0.48, radius: 30, shadow: true, z: z + 2, anim: STILL,
     }),
-    // QR để trống, chỉ hiện khi thiệp thật sự có ảnh QR. Gắn sẵn QR mẫu vào đây
-    // thì một tấm thiệp thật chưa nhập tài khoản sẽ trưng ra mã QR giả cho khách
-    // quét. Nền trắng nằm trên chính node ảnh, không phải node riêng — node riêng
-    // sẽ ở lại thành một ô trắng rỗng khi không có QR.
-    photo(section, {
-      top: top + 18.7, left: qrLeft, width: 102.3, height: 102.3,
-      img: '', slot: opts.qrSlot, bg: '#ffffff', pad: 3.3, z: z + 16, anim: STILL,
+    /**
+     * Nút "Gửi quà" thay cho tấm QR dán sẵn trên thẻ.
+     *
+     * Bản trước in thẳng mã QR lên thẻ, cỡ 102px. Ở cỡ đó máy quét của khách
+     * phải rà rất gần mới bắt được, mà chỗ đó lại là chỗ chật nhất của thẻ. Bấm
+     * ra một lớp phủ thì QR hiện ở 200px, kèm tên ngân hàng và một nút chép số
+     * tài khoản — thứ mà một tấm ảnh QR không làm được.
+     *
+     * `accountIndex` để mỗi nút chỉ mở tài khoản của đúng người trên thẻ đó.
+     * Chưa nhập tài khoản thì lớp phủ nói rõ là sẽ cập nhật, chứ nút không biến
+     * mất: khách vừa bấm mà nút bay đi thì tưởng thiệp hỏng.
+     */
+    createNode('GiftQr', section, {
+      top: top + 55, left: qrLeft, width: 102.3, height: 44, zIndex: z + 16,
+      label: 'Gửi quà',
+      fontFamily: FORMAL, fontSize: 24, color: '#ffffff',
+      backgroundColor: ROSE,
+      borderRadius: [22, 22, 22, 22],
+      modalTitle: `Gửi quà mừng ${opts.role.toLowerCase()}`,
+      accountIndex: opts.accountIndex,
+      hasShadow: true,
+      boxShadow: { offsetX: 0, offsetY: 3, blur: 10, spread: 0, color: 'rgba(139, 47, 48, 0.28)' },
+      // Không nhấp nháy: nút nằm trên một tấm thẻ đã có ảnh tròn và vòng nét
+      // đứt, thêm một thứ động đậy nữa là chỗ đó thành ồn.
+      continuousAnimation: { type: 'none', duration: 2, delay: 0 },
+      ...STILL,
     }),
     text(section, {
       top: top + 22, left: textMid - 75, width: 150, height: 30,
@@ -638,7 +662,9 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
       pocketBottomColor: '#a84644',
       heartColor: '#d00000',
       lockScrollUntilOpened: true,
-      dismissAfter: 3.4,
+      // Nhịp mở giờ dài hơn (dấu xi bong ra trước rồi nắp mới lật, xem
+      // runtime/nodes/envelope.tsx). 3.4s là bì tan biến khi thư còn đang trồi.
+      dismissAfter: 4.4,
       ...fx('slide-up', 0.3),
     }),
     text('sec-cover', {
@@ -657,7 +683,7 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
       // hiện xoá mất (xem animation.ts). Có alpha thì `frost` mới thấy tác
       // dụng — làm nhoè bao nhiêu cũng vô nghĩa sau một lớp trắng đặc.
       top: 1040, left: 31.9, width: 448.4, height: 372,
-      fill: 'rgba(255, 255, 255, 0.34)', frost: 16,
+      fill: 'rgba(255, 255, 255, 0.34)', frost: 26,
     }),
     createNode('CountDown', 'sec-intro', {
       top: 1025.9, left: 108.5, width: 310, height: 65,
@@ -711,37 +737,48 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
     }),
     vrule('sec-vows', 1656, 52, 67),
 
+    /**
+     * Hai cột đối xứng quanh trục giữa, cùng bề rộng, cùng lề.
+     *
+     * Cột trái trước đây bắt đầu ở x=-18: chữ canh giữa nên tên ngắn thì không
+     * ai thấy gì, tới khi gặp một địa chỉ đủ dài thì ký tự đầu bị cắt cụt ngoài
+     * mép thiệp ("131 Giải Phóng" hiện ra thành "31 Giải Phóng"). Cột phải thì
+     * chạy sát tận x=500. Giờ cả hai nằm trong khoảng [10, 490] với khe giữa
+     * 28px, nên dài đến mấy cũng chỉ xuống dòng chứ không tràn ra ngoài.
+     */
     text('sec-vows', {
-      top: 1729.9, left: 0, width: 201.5, height: 31,
+      top: 1729.9, left: VOWS_L, width: VOWS_W, height: 31,
       text: 'Nhà Trai', font: SERIF, size: 27, color: '#000000', anim: IN_RIGHT,
     }),
     text('sec-vows', {
-      top: 1773.2, left: -18, width: 235, height: 31,
+      top: 1773.2, left: VOWS_L, width: VOWS_W, height: 31,
       text: 'Ông: {{groom.father}}', font: SANS, size: 18, color: '#000000', anim: IN_RIGHT,
     }),
     text('sec-vows', {
-      top: 1804, left: -18, width: 235, height: 26,
+      top: 1804, left: VOWS_L, width: VOWS_W, height: 26,
       text: 'Bà: {{groom.mother}}', font: SANS, size: 18, color: '#000000', anim: IN_RIGHT,
     }),
     text('sec-vows', {
-      top: 1836, left: -18, width: 235, height: 26,
-      text: '{{groom.address}}', font: SANS, size: 18, color: '#000000', anim: IN_RIGHT,
+      top: 1836, left: VOWS_L, width: VOWS_W, height: 56,
+      text: '{{groom.address|lines}}', font: SANS, size: 18, color: '#000000',
+      lineHeight: '1.35', anim: IN_RIGHT,
     }),
     text('sec-vows', {
-      top: 1729.9, left: 296.1, width: 201.5, height: 31,
+      top: 1729.9, left: VOWS_R, width: VOWS_W, height: 31,
       text: 'Nhà Gái', font: SERIF, size: 27, color: '#000000', anim: IN_LEFT,
     }),
     text('sec-vows', {
-      top: 1773.2, left: 265.1, width: 235, height: 31,
+      top: 1773.2, left: VOWS_R, width: VOWS_W, height: 31,
       text: 'Ông: {{bride.father}}', font: SANS, size: 18, color: '#000000', anim: IN_LEFT,
     }),
     text('sec-vows', {
-      top: 1804, left: 263.6, width: 235, height: 26,
+      top: 1804, left: VOWS_R, width: VOWS_W, height: 26,
       text: 'Bà: {{bride.mother}}', font: SANS, size: 18, color: '#000000', anim: IN_LEFT,
     }),
     text('sec-vows', {
-      top: 1836, left: 263.6, width: 235, height: 26,
-      text: '{{bride.address}}', font: SANS, size: 18, color: '#000000', anim: IN_LEFT,
+      top: 1836, left: VOWS_R, width: VOWS_W, height: 56,
+      text: '{{bride.address|lines}}', font: SANS, size: 18, color: '#000000',
+      lineHeight: '1.35', anim: IN_LEFT,
     }),
 
     // ═══════════ Tiệc cưới ═══════════
@@ -829,8 +866,9 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
       text: '{{bride.birthday}}', font: SCRIPT, size: 20, weight: '700', z: 23, anim: IN_RIGHT,
     }),
     text('sec-bride', {
-      top: 3652, left: 48, width: 134, height: 56,
-      text: '{{bride.address}}', font: SCRIPT, size: 17, weight: '700', z: 24, anim: IN_RIGHT,
+      top: 3652, left: 48, width: 134, height: 72,
+      text: '{{bride.address|lines}}', font: SCRIPT, size: 17, weight: '700',
+      lineHeight: '1.35', z: 24, anim: IN_RIGHT,
     }),
     box('sec-bride', {
       top: 3914.5, left: 10.4, width: 417.9, height: 229.3,
@@ -872,8 +910,9 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
       text: '{{groom.birthday}}', font: SCRIPT, size: 20, weight: '700', z: 24, anim: IN_LEFT,
     }),
     text('sec-groom', {
-      top: 4458, left: 350, width: 134, height: 56,
-      text: '{{groom.address}}', font: SCRIPT, size: 17, weight: '700', z: 25, anim: IN_LEFT,
+      top: 4458, left: 350, width: 134, height: 72,
+      text: '{{groom.address|lines}}', font: SCRIPT, size: 17, weight: '700',
+      lineHeight: '1.35', z: 25, anim: IN_LEFT,
     }),
     box('sec-groom', {
       top: 4782.7, left: 73.7, width: 370.4, height: 227.8,
@@ -968,7 +1007,7 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
       // Cùng lý do với tấm nền phần Lời mời. Để đục hơn một chút vì tấm này
       // đỡ cả cái form — chữ trong ô nhập phải đọc được, không chỉ ngắm.
       top: 6132, left: 37.5, width: 417.8, height: 685.3,
-      fill: 'rgba(255, 255, 255, 0.5)', frost: 16, z: 50,
+      fill: 'rgba(255, 255, 255, 0.5)', frost: 22, z: 50,
     }),
     text('sec-rsvp', {
       top: 6103.3, left: 14.9, width: 482.6, height: 61,
@@ -1032,7 +1071,7 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
       nameToken: '{{bride.fullName}}',
       accountToken: '{{accounts.1.bank}} {{accounts.1.accountNumber}}',
       photoKey: SEED_KEYS.bride, photoSlot: 'bride',
-      qrSlot: 'qrBride',
+      accountIndex: 1,
       z: 62,
     }),
     ...giftCard('sec-gift', 7857.2, 'right', {
@@ -1040,7 +1079,7 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
       nameToken: '{{groom.fullName}}',
       accountToken: '{{accounts.0.bank}} {{accounts.0.accountNumber}}',
       photoKey: SEED_KEYS.groom, photoSlot: 'groom',
-      qrSlot: 'qrGroom',
+      accountIndex: 0,
       z: 63,
     }),
 

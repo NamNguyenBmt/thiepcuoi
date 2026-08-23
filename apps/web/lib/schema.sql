@@ -43,6 +43,10 @@ create table if not exists templates (
   created_at  timestamptz not null default now()
 );
 
+-- Dấu vân của bản dựng sẵn mà app đã ghi vào hàng này (xem lib/sql.ts).
+-- Null = mẫu do người dùng tự dựng, app không bao giờ đụng tới.
+alter table templates add column if not exists builtin_hash text;
+
 create table if not exists invites (
   id           text primary key,
   slug         text not null unique,

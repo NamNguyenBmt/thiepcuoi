@@ -178,8 +178,13 @@ export const NODE_DEFAULTS: DefaultsMap = {
   GiftQr: () => ({
     ...baseProps({ width: 100, height: 100, continuousAnimation: { type: 'wobble', duration: 2, delay: 0 } }),
     imgKey: '',
+    label: '',
+    fontFamily: 'Quicksand',
+    fontSize: 16,
+    color: '#ffffff',
     modalTitle: 'Hộp quà yêu thương',
     accounts: [],
+    accountIndex: null,
     flipX: false,
     flipY: false,
   }),

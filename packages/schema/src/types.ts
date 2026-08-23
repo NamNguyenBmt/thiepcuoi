@@ -5,7 +5,7 @@
  * nhóm theo "section" để render theo lô và chạy animation khi scroll tới.
  */
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 // ─────────────────────────── Primitives ───────────────────────────
 
@@ -266,9 +266,22 @@ export interface BankAccount {
 }
 
 export interface GiftQrProps extends BaseProps {
-  imgKey: AssetKey;      // icon nút mở modal
+  imgKey: AssetKey;      // icon nút mở modal — bỏ trống thì nút hiện `label`
+  /** Chữ trên nút. Có chữ thì dùng chữ, không thì rơi về `imgKey`. */
+  label: string;
+  fontFamily: string;
+  fontSize: number;
+  color: string;
   modalTitle: string;
   accounts: BankAccount[];
+  /**
+   * Chỉ mở đúng một tài khoản trong `InviteData.accounts`, `null` là mở hết.
+   *
+   * Thiệp có hai nút — một bên cô dâu, một bên chú rể — mà cả hai cùng bung ra
+   * đủ hai tài khoản thì khách phải tự dò xem cái nào của ai, đúng thứ mà cái
+   * nút lẽ ra đã trả lời hộ.
+   */
+  accountIndex: number | null;
   flipX: boolean;
   flipY: boolean;
 }

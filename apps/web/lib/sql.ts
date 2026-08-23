@@ -16,6 +16,8 @@
  */
 
 import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import type { TemplateDoc } from '@thiepcuoi/schema';
 import { assertConfig } from './config-check';
 import { once } from './once';
 import { join } from 'node:path';
@@ -142,34 +144,77 @@ async function connect(): Promise<Sql> {
 }
 
 /**
- * Nạp những mẫu dựng sẵn còn THIẾU vào một database đã có dữ liệu.
+ * Đồng bộ mẫu dựng sẵn vào một database đã có dữ liệu: chèn mẫu còn thiếu, và
+ * cập nhật mẫu mà KHÔNG AI TỪNG SỬA.
  *
  * `seedIfEmpty` chỉ chạy khi bảng `users` còn trống — đúng cho lần dựng đầu,
- * nhưng nghĩa là mọi mẫu thêm về sau không bao giờ tới được production đang
- * chạy. Cho tới nay chỗ đó phải lấp bằng tay: cầm `DATABASE_URL` của production
- * chạy `npm run seed:templates`. Mỗi lần thêm mẫu lại một lần như vậy, và quên
- * thì deploy xong mẫu vẫn không có. Bước này biến nó thành: đẩy code là xong.
+ * nhưng nghĩa là mọi thay đổi mẫu về sau không bao giờ tới được production đang
+ * chạy. Chỗ đó phải lấp bằng tay: cầm `DATABASE_URL` của production chạy
+ * `npm run seed:templates -- --force`. Mỗi lần sửa mẫu lại một lần như vậy, và
+ * quên thì deploy xong giao diện vẫn y nguyên. Bước này biến nó thành: đẩy code
+ * là xong.
  *
- * CHỈ chèn mẫu chưa có, KHÔNG bao giờ ghi đè. Chủ thiệp có thể đã sửa một mẫu
- * dựng sẵn trong editor, và một bước chạy lúc khởi động mà nuốt mất công của họ
- * là thứ không ai kịp ngăn. Cập nhật mẫu đã có vẫn là việc của
- * `npm run seed:templates -- --force <slug>`, nơi có người bấm nút chịu trách
- * nhiệm.
+ * Ranh giới an toàn là cột `builtin_hash` — dấu vân của bản mà chính app đã ghi
+ * xuống lần trước:
  *
- * Giá phải trả trên cold start là đúng một câu `select` khi không thiếu gì —
- * ảnh mồi chỉ được dựng lại khi thật sự có mẫu phải chèn.
+ *   hash(doc_packed) === builtin_hash  → hàng còn nguyên như app để lại, ghi đè
+ *   lệch nhau                          → có người sửa trong editor, KHÔNG đụng
+ *
+ * So bằng nội dung chứ không bằng `revision`: `revision` còn tăng vì những lý
+ * do khác, và một mẫu bị sửa rồi sửa ngược về như cũ thì ghi đè cũng vô hại.
+ * Điều phải tránh là nuốt mất công người ta đã bỏ ra trong editor — mà cái đó
+ * chỉ nhìn thấy được ở nội dung.
+ *
+ * `builtin_hash` null là hàng có trước khi cột này tồn tại. Nhận lại nó khi
+ * `revision = 1` — chưa từng qua một lần Lưu nào, tức đúng là bản app đặt xuống
+ * và không ai đụng. Còn `revision > 1` thì để yên: mẫu "Ngọt ngào" trên
+ * production đang ở bản 12 vì chủ thiệp sửa trong editor, và nhận nhầm nó là
+ * xoá sạch công của họ ngay lần khởi động kế tiếp.
+ *
+ * Giá phải trả trên cold start là đúng một câu `select`; ảnh mồi chỉ dựng lại
+ * khi thật sự có việc phải ghi.
  */
 async function syncBuiltinTemplates(sql: Sql): Promise<void> {
   const { builtinTemplates } = await import('./seed');
-  const docs = builtinTemplates();
+  const { packDoc } = await import('@thiepcuoi/schema');
+  const docs = builtinTemplates().map((doc) => {
+    const packed = packDoc(doc);
+    return { doc, packed, hash: fingerprint(packed) };
+  });
 
-  const { rows: have } = await sql.query<{ slug: string }>(
-    'select slug from templates where slug = any($1)',
-    [docs.map((d) => d.slug)],
+  const { rows: have } = await sql.query<{
+    slug: string; doc_packed: string; builtin_hash: string | null; revision: number;
+  }>(
+    'select slug, doc_packed, builtin_hash, revision from templates where slug = any($1)',
+    [docs.map((d) => d.doc.slug)],
   );
-  const known = new Set(have.map((r) => r.slug));
-  const missing = docs.filter((d) => !known.has(d.slug));
-  if (missing.length === 0) return;
+  const bySlug = new Map(have.map((r) => [r.slug, r]));
+
+  const missing = docs.filter((d) => !bySlug.has(d.doc.slug));
+
+  /**
+   * Mỗi hàng ghi đè mang theo `guard` — chính điều kiện vừa dùng để phân loại,
+   * lặp lại trong mệnh đề `where` của câu update. Giữa lúc đọc và lúc ghi, một
+   * người có thể vừa bấm Lưu trong editor; bản của họ phải thắng.
+   */
+  const writes: Array<{ doc: TemplateDoc; packed: string; hash: string; guard: string; changed: boolean }> = [];
+  for (const d of docs) {
+    const row = bySlug.get(d.doc.slug);
+    if (!row) continue;
+
+    const ours = row.builtin_hash !== null && row.builtin_hash === fingerprint(row.doc_packed);
+    const adoptable = row.builtin_hash === null && row.revision === 1;
+    if (!ours && !adoptable) continue;
+
+    const changed = row.doc_packed !== d.packed;
+    if (!changed && !adoptable) continue;
+    writes.push({
+      ...d,
+      guard: ours ? `builtin_hash = '${row.builtin_hash}'` : 'builtin_hash is null and revision = 1',
+      changed,
+    });
+  }
+  if (missing.length === 0 && writes.length === 0) return;
 
   /**
    * Ảnh mồi phải thuộc về một người có thật (`assets.owner_id` tham chiếu
@@ -182,10 +227,7 @@ async function syncBuiltinTemplates(sql: Sql): Promise<void> {
   const ownerId = owners[0]?.id;
   if (!ownerId) return;
 
-  const [{ packDoc }, { buildSeedAssets }] = await Promise.all([
-    import('@thiepcuoi/schema'),
-    import('./seed-assets'),
-  ]);
+  const { buildSeedAssets } = await import('./seed-assets');
 
   // Mẫu mới có thể trỏ tới hoạ tiết mà database này chưa từng thấy. Ghi đè lên
   // chính nó là vô hại: khoá là uuid cố định và nội dung tất định.
@@ -202,19 +244,46 @@ async function syncBuiltinTemplates(sql: Sql): Promise<void> {
          a.row.originalName, now],
       );
     }
-    for (const doc of missing) {
+    for (const { doc, packed, hash } of missing) {
       // `on conflict do nothing` không nêu tên ràng buộc, để bắt cả `slug` lẫn
       // `id`: nhiều instance cùng khởi động thì cả hai đều thấy thiếu một mẫu.
       await tx.query(
-        `insert into templates (id, slug, name, owner_id, doc_packed, thumbnail, usage_count)
-         values ($1, $2, $3, $4, $5, null, 0)
+        `insert into templates (id, slug, name, owner_id, doc_packed, thumbnail, usage_count, builtin_hash)
+         values ($1, $2, $3, $4, $5, null, 0, $6)
          on conflict do nothing`,
-        [doc.id, doc.slug, doc.name, ownerId, packDoc(doc)],
+        [doc.id, doc.slug, doc.name, ownerId, packed, hash],
+      );
+    }
+    for (const { doc, packed, hash, guard, changed } of writes) {
+      // Nội dung không đổi thì chỉ đóng dấu vân, KHÔNG tăng `revision`: tăng
+      // vô cớ sẽ làm mọi editor đang mở báo xung đột dù chẳng có gì khác.
+      //
+      // Mỗi nhánh mang đúng số tham số nó dùng: Postgres suy kiểu tham số từ
+      // chỗ chúng xuất hiện trong câu lệnh, nên một $n thừa ra là lỗi 42P18
+      // ngay lúc phân tích, không phải lúc chạy.
+      await tx.query(
+        changed
+          ? `update templates set name = $2, doc_packed = $3, builtin_hash = $4,
+                    revision = revision + 1
+               where slug = $1 and ${guard}`
+          : `update templates set builtin_hash = $2 where slug = $1 and ${guard}`,
+        changed ? [doc.slug, doc.name, packed, hash] : [doc.slug, hash],
       );
     }
   });
 
-  console.warn(`[templates] đã nạp mẫu dựng sẵn còn thiếu: ${missing.map((d) => d.slug).join(', ')}`);
+  const names = (list: Array<{ doc: TemplateDoc }>) => list.map((d) => d.doc.slug).join(', ');
+  const parts = [
+    missing.length > 0 ? `đã thêm ${names(missing)}` : '',
+    writes.some((w) => w.changed) ? `đã cập nhật ${names(writes.filter((w) => w.changed))}` : '',
+    writes.some((w) => !w.changed) ? `đã nhận dấu vân ${names(writes.filter((w) => !w.changed))}` : '',
+  ].filter(Boolean);
+  console.warn(`[templates] ${parts.join('; ')}`);
+}
+
+/** Dấu vân nội dung mẫu — chỉ để phát hiện thay đổi, không phải để bảo mật */
+function fingerprint(packed: string): string {
+  return createHash('sha256').update(packed).digest('hex').slice(0, 32);
 }
 
 /**

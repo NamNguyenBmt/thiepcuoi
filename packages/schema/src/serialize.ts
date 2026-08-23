@@ -40,7 +40,18 @@ type Migration = (doc: any) => any;
  * Doc cũ trong DB không cần backfill — migrate chạy lúc load.
  */
 const MIGRATIONS: Record<number, Migration> = {
-  // 1: () => ...  (v1 là bản đầu, chưa có migration nào)
+  // v1 → v2: node GiftQr có thêm nhãn chữ và bộ lọc tài khoản.
+  1: (doc) => {
+    for (const node of Object.values<any>(doc.nodes ?? {})) {
+      if (node?.type !== 'GiftQr') continue;
+      node.props.label ??= '';
+      node.props.fontFamily ??= 'Quicksand';
+      node.props.fontSize ??= 16;
+      node.props.color ??= '#ffffff';
+      node.props.accountIndex ??= null;
+    }
+    return doc;
+  },
 };
 
 export function migrate(doc: any): TemplateDoc {
@@ -156,7 +167,28 @@ export function assetUrl(base: string, key: AssetKey, t: ImageTransform = {}): s
 
 // ─────────────────────────── Token binding ───────────────────────────
 
-const TOKEN_RE = /\{\{\s*([\w.]+)\s*\}\}/g;
+const TOKEN_RE = /\{\{\s*([\w.]+)\s*(?:\|\s*(\w+)\s*)?\}\}/g;
+
+/**
+ * Bộ lọc chạy sau khi token đã lấy được giá trị: `{{bride.address|lines}}`.
+ *
+ * Có mặt vì một số trường là danh sách viết liền bằng dấu phẩy — địa chỉ là ví
+ * dụ điển hình — và khi ô chữ hẹp thì trình duyệt ngắt dòng ở chỗ nào vừa đủ
+ * chỗ, không quan tâm ngắt giữa một cụm: "Xã Đắk Liêng, Đắk / Lắk", hay
+ * "P. Buôn Ma / Thuột". Người đọc vấp đúng chỗ đó. Không thể sửa bằng CSS vì
+ * trình duyệt không biết đâu là ranh giới có nghĩa; cũng không nên bắt người
+ * nhập tự chèn thẻ xuống dòng vào dữ liệu, vì cùng một địa chỉ còn hiện ở
+ * những ô rộng khác mà ở đó nó vừa một dòng.
+ */
+const FILTERS: Record<string, (value: string) => string> = {
+  /** Mỗi cụm ngăn bởi dấu phẩy xuống một dòng, giữ nguyên dấu phẩy */
+  lines: (v) => escapeHtml(v).split(/\s*,\s*/).filter(Boolean).join(',<br>'),
+};
+
+/** Giá trị đi vào chỗ có thẻ HTML thì phải thoát, không thì `&` trong tên gãy */
+function escapeHtml(v: string): string {
+  return v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 /**
  * Thay {{groom.fullName}} bằng dữ liệu thiệp. Token không resolve được thì
@@ -167,14 +199,21 @@ export function resolveTokens(
   data: unknown,
   mode: 'editor' | 'render' = 'render',
 ): string {
-  return text.replace(TOKEN_RE, (whole, path: string) => {
+  return text.replace(TOKEN_RE, (whole, path: string, filter?: string) => {
     const value = path.split('.').reduce<any>((acc, k) => (acc == null ? acc : acc[k]), data);
     if (value == null || value === '') return mode === 'editor' ? whole : '';
-    return String(value);
+    const raw = String(value);
+    const fn = filter ? FILTERS[filter] : undefined;
+    // Bộ lọc gõ sai thì trả về giá trị thô chứ không nuốt mất nội dung —
+    // một cái tên hiện ra không đúng kiểu vẫn hơn một ô trống.
+    return fn ? fn(raw) : raw;
   });
 }
 
-/** Liệt kê mọi token đang dùng trong doc — để build form nhập liệu động */
+/**
+ * Liệt kê mọi token đang dùng trong doc — để build form nhập liệu động.
+ * Bỏ phần bộ lọc: `{{bride.address|lines}}` và `{{bride.address}}` là cùng một ô nhập.
+ */
 export function collectTokens(doc: TemplateDoc): string[] {
   const found = new Set<string>();
   for (const node of Object.values(doc.nodes)) {

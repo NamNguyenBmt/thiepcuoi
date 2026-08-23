@@ -12,7 +12,7 @@
  */
 
 import { createEmptyDoc, createNode, packDoc } from '@thiepcuoi/schema';
-import type { InviteData, TemplateDoc } from '@thiepcuoi/schema';
+import type { InviteData, TemplateDoc, TemplateNode } from '@thiepcuoi/schema';
 import type { Database } from './db';
 import { randomBytes } from 'node:crypto';
 import { hashPassword } from './auth';
@@ -251,7 +251,36 @@ export function builtinTemplates(): TemplateDoc[] {
     sweetTemplate(),
     sweetTemplate('vu-quy'),
     sweetTemplate('thanh-hon'),
-  ];
+  ].map(withStableIds);
+}
+
+/**
+ * Đánh lại id node theo thứ tự, thay cho uuid ngẫu nhiên của `createNode`.
+ *
+ * Một mẫu dựng sẵn phải dựng lại được y hệt: cùng mã nguồn thì cùng byte. Với
+ * uuid, mỗi lần gọi ra một doc khác nhau ở từng id, nên `packDoc` cho chuỗi
+ * khác — và bước đồng bộ lúc khởi động, vốn so nội dung để biết mẫu có đổi
+ * không, sẽ thấy "đổi" ở mọi cold start: ghi đè liên tục, `revision` tăng vô
+ * hạn, và editor của chủ thiệp bị báo xung đột dù chẳng ai sửa gì.
+ *
+ * Không có gì trong doc trỏ tới id node (section tham chiếu ngược, slot ảnh gọi
+ * theo tên), nên đánh lại là an toàn.
+ */
+function withStableIds(doc: TemplateDoc): TemplateDoc {
+  const nodes: Record<string, TemplateNode> = {};
+  const order: string[] = [];
+
+  doc.order.forEach((oldId, i) => {
+    const node = doc.nodes[oldId];
+    if (!node) return;
+    node.id = `${doc.id}-n${String(i).padStart(3, '0')}`;
+    nodes[node.id] = node;
+    order.push(node.id);
+  });
+
+  doc.nodes = nodes;
+  doc.order = order;
+  return doc;
 }
 
 export async function seedDatabase(): Promise<Database> {

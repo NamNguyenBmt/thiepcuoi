@@ -299,7 +299,10 @@ export function GiftQrNode({ node }: NodeProps<'GiftQr'>) {
   // Số tài khoản là dữ liệu của từng cặp đôi, không phải của thiết kế. Template
   // để trống thì lấy từ `InviteData` — nếu không, mọi thiệp dùng chung mẫu này
   // sẽ chuyển tiền vào tài khoản của người đầu tiên dựng mẫu.
-  const accounts = p.accounts.length > 0 ? p.accounts : (data?.accounts ?? []);
+  const all = p.accounts.length > 0 ? p.accounts : (data?.accounts ?? []);
+  // `accountIndex` trỏ vào một tài khoản cụ thể; ngoài khoảng thì coi như chưa
+  // có, chứ không âm thầm rơi về tài khoản của người khác.
+  const accounts = p.accountIndex == null ? all : all.slice(p.accountIndex, p.accountIndex + 1);
 
   const icon = imageUrl(assetBase, p.imgKey, p.width, dpr, { format: 'png' });
 
@@ -319,19 +322,31 @@ export function GiftQrNode({ node }: NodeProps<'GiftQr'>) {
         <button
           type="button"
           onClick={() => mode === 'render' && setOpen(true)}
-          aria-label={p.modalTitle}
+          aria-label={p.label || p.modalTitle}
           style={{
             all: 'unset',
-            display: 'block',
+            // Nền, viền, bo góc là của NodeShell — nút chỉ lo chữ và vùng bấm,
+            // nên cùng một node vừa làm được icon vừa làm được nút chữ.
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxSizing: 'border-box',
             width: '100%',
             height: '100%',
             cursor: 'pointer',
-            backgroundImage: icon ? `url("${icon}")` : undefined,
+            fontFamily: p.fontFamily,
+            fontSize: p.fontSize,
+            color: p.color,
+            lineHeight: 1.1,
+            textAlign: 'center',
+            backgroundImage: !p.label && icon ? `url("${icon}")` : undefined,
             backgroundSize: 'contain',
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center',
           }}
-        />
+        >
+          {p.label}
+        </button>
       </NodeShell>
 
       {open && (
@@ -365,6 +380,16 @@ export function GiftQrNode({ node }: NodeProps<'GiftQr'>) {
             }}
           >
             <div style={{ fontWeight: 700, textAlign: 'center', marginBottom: 16 }}>{p.modalTitle}</div>
+            {/*
+              Chủ thiệp có thể bật nút trước, điền số tài khoản sau. Nói thẳng
+              là chưa có còn hơn mở ra một hộp trắng trơn, và hơn hẳn việc giấu
+              luôn cái nút — khách vừa bấm xong mà nút biến mất thì tưởng hỏng.
+            */}
+            {accounts.length === 0 && (
+              <div style={{ textAlign: 'center', fontSize: 14, color: '#666', marginBottom: 20 }}>
+                Thông tin chuyển khoản sẽ được cập nhật.
+              </div>
+            )}
             {accounts.map((acc) => (
               <div key={acc.id} style={{ textAlign: 'center', marginBottom: 20 }}>
                 <div style={{ fontWeight: 600, marginBottom: 8 }}>{acc.displayName}</div>
