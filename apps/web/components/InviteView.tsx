@@ -140,7 +140,6 @@ export function InviteView({
           background: var(--tc-card-bg, #fff);
         }
         .tc-scroll { overflow: visible; }
-        .tc-madeby { display: none; }
 
         /* Màn hình rộng: dựng khung như đang cầm điện thoại, thiệp cuộn bên trong */
         @media (min-width: 900px) {
@@ -155,19 +154,6 @@ export function InviteView({
             height: min(calc(100vh - 120px), 900px);
             scrollbar-width: thin;
           }
-          .tc-madeby {
-            display: block;
-            position: absolute;
-            top: 50%;
-            left: calc(50% + 262px);
-            transform: translateY(-50%);
-            writing-mode: vertical-rl;
-            font-size: 11px;
-            letter-spacing: 0.28em;
-            color: #a9989a;
-            z-index: 2;
-            white-space: nowrap;
-          }
         }
       `}</style>
 
@@ -181,10 +167,6 @@ export function InviteView({
             <CanvasRenderer doc={doc} />
           </RuntimeProvider>
         </div>
-      </div>
-
-      <div className="tc-madeby" aria-hidden>
-        Made with ThiepCuoiOnline
       </div>
 
       {doc.audio?.key && <AudioToggle audio={doc.audio} assetBase={assetBase} />}

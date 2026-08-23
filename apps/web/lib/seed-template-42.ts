@@ -48,21 +48,37 @@ const SYS = 'Arial';
 
 // ─────────────────────────── Section ───────────────────────────
 
+/**
+ * Mốc dọc của từng section.
+ *
+ * Khối tiệc chứa hai buổi (vu quy + thành hôn) nên dài hơn bản một buổi đúng
+ * `EVENT_GROWTH`. Thay vì sửa tay toạ độ của gần một trăm node bên dưới — việc
+ * sai một con số là lệch cả nửa tấm thiệp — mọi node thuộc các section sau khối
+ * tiệc được đẩy xuống một lượt lúc dựng doc.
+ */
+const EVENT_GROWTH = 140;
+
 const Y = {
   cover: 0,
   intro: 720,
   vows: 1420,
   event: 1900,
-  sweet: 2560,
-  bride: 3400,
-  groom: 4180,
-  date: 5000,
-  timeline: 5820,
-  rsvp: 6090,
-  gift: 7300,
-  thanks: 8000,
-  end: 8382,
+  sweet: 2560 + EVENT_GROWTH,
+  bride: 3400 + EVENT_GROWTH,
+  groom: 4180 + EVENT_GROWTH,
+  date: 5000 + EVENT_GROWTH,
+  timeline: 5820 + EVENT_GROWTH,
+  rsvp: 6090 + EVENT_GROWTH,
+  gift: 7300 + EVENT_GROWTH,
+  thanks: 8000 + EVENT_GROWTH,
+  end: 8382 + EVENT_GROWTH,
 };
+
+/** Section nằm sau khối tiệc — node của chúng viết theo toạ độ cũ rồi đẩy xuống */
+const SHIFTED_SECTIONS = new Set([
+  'sec-sweet', 'sec-bride', 'sec-groom', 'sec-date',
+  'sec-timeline', 'sec-rsvp', 'sec-gift', 'sec-thanks',
+]);
 
 // ─────────────────────────── Hiệu ứng vào ───────────────────────────
 
@@ -224,6 +240,80 @@ function vrule(section: string, top: number, left: number, height: number, color
 /** Gạch ngang mảnh trên/dưới khối ngày cưới */
 function hrule(section: string, top: number, left: number, width: number) {
   return box(section, { top, left, width, height: 1.5, fill: RULE, anim: IN_UP });
+}
+
+/**
+ * Một khối tiệc: tiêu đề, giờ, khối ngày lớn, âm lịch, nơi tổ chức và một bản
+ * đồ nhỏ nép vào góc.
+ *
+ * Bản đồ để nhỏ và lệch hẳn sang một bên, hai khối thì đổi bên — mắt bắt được
+ * ngay là "có hai tiệc", thay vì hai tấm bản đồ to bằng nhau xếp chồng nhìn
+ * như một khối bị lặp. Chữ và bản đồ chia đôi bề ngang nên không đè nhau.
+ */
+function partyBlock(
+  section: string,
+  top: number,
+  ev: string,
+  side: 'left' | 'right',
+  z: number,
+) {
+  const mapLeft = side === 'left' ? 16 : 352;
+  const textLeft = side === 'left' ? 160 : 14;
+  const textWidth = 324;
+
+  return [
+    text(section, {
+      top, left: 25.5, width: 448, height: 53,
+      text: `{{${ev}.title}}`, font: SERIF, size: 26, weight: '700', upper: true, z,
+    }),
+    text(section, {
+      top: top + 45, left: 25.5, width: 448, height: 43,
+      text: `Vào lúc {{${ev}.time}} {{${ev}.weekday}}`,
+      font: SERIF, size: 21, weight: '700', upper: true, z,
+    }),
+    hrule(section, top + 92, 17.3, 169.7),
+    hrule(section, top + 92, 306, 180.5),
+    text(section, {
+      top: top + 99, left: 17.3, width: 169.7, height: 46,
+      text: `{{${ev}.monthText}}`, font: SERIF, size: 30, weight: '700', upper: true, z, anim: IN_RIGHT,
+    }),
+    text(section, {
+      top: top + 99, left: 306, width: 180.5, height: 46,
+      text: `Năm {{${ev}.year}}`, font: SERIF, size: 30, weight: '700', upper: true, z, anim: IN_LEFT,
+    }),
+    text(section, {
+      top: top + 79, left: 142.8, width: 205, height: 106,
+      text: `{{${ev}.day}}`, font: SERIF, size: 85, weight: '700', color: DEEP, z,
+    }),
+    hrule(section, top + 152, 17.3, 169.7),
+    hrule(section, top + 152, 306, 180.5),
+    text(section, {
+      top: top + 188, left: 32.3, width: 448, height: 40,
+      text: `({{${ev}.lunarText}})`, font: SERIF, size: 19, weight: '400', z,
+    }),
+
+    // Bản đồ nhỏ trong góc, có khung trắng mảnh như một tấm ảnh dán vào thiệp
+    box(section, {
+      top: top + 236, left: mapLeft, width: 132, height: 99, fill: '#ffffff', z,
+      anim: side === 'left' ? MEDIA_RIGHT : MEDIA_LEFT,
+    }),
+    createNode('Map', section, {
+      top: top + 240, left: mapLeft + 4, width: 124, height: 91, zIndex: z + 1,
+      mode: 'embed',
+      label: `Bản đồ tới {{${ev}.venue}}`,
+      query: `{{${ev}.venue}} {{${ev}.address}}`,
+      fontFamily: SANS, fontSize: 12,
+      ...fx('slide-up', 0.3),
+    }),
+    text(section, {
+      top: top + 238, left: textLeft, width: textWidth, height: 30,
+      text: `{{${ev}.venue}}`, font: SERIF, size: 22, weight: '700', upper: true, z,
+    }),
+    text(section, {
+      top: top + 270, left: textLeft, width: textWidth, height: 62,
+      text: `{{${ev}.address}}`, font: SANS, size: 13, lineHeight: '1.6', z,
+    }),
+  ];
 }
 
 /**
@@ -406,7 +496,7 @@ export function sweetTemplate(): TemplateDoc {
     }),
     createNode('CountDown', 'sec-intro', {
       top: 1025.9, left: 108.5, width: 310, height: 65,
-      targetDate: '{{events.0.datetime}}',
+      targetDate: '{{events.1.datetime}}',
       themeColor: COUNTDOWN, color: '#ffffff',
       fontFamily: SYS, fontSize: 14, spacing: 8,
       expiredText: 'Chúng mình đã về chung một nhà',
@@ -490,56 +580,10 @@ export function sweetTemplate(): TemplateDoc {
     }),
 
     // ═══════════ Tiệc cưới ═══════════
-    text('sec-event', {
-      top: 1904.2, left: 25.5, width: 448, height: 53,
-      text: 'Tiệc mừng lễ thành hôn', font: SERIF, size: 26, weight: '700', upper: true,
-    }),
-    text('sec-event', {
-      top: 1949.4, left: 25.5, width: 448, height: 43,
-      text: 'Vào lúc {{events.0.time}} {{events.0.weekday}}',
-      font: SERIF, size: 21, weight: '700', upper: true,
-    }),
-    hrule('sec-event', 1996, 17.3, 169.7),
-    hrule('sec-event', 1996, 306, 180.5),
-    text('sec-event', {
-      top: 2003, left: 17.3, width: 169.7, height: 46,
-      text: '{{events.0.monthText}}', font: SERIF, size: 30, weight: '700', upper: true, anim: IN_RIGHT,
-    }),
-    text('sec-event', {
-      top: 2003, left: 306, width: 180.5, height: 46,
-      text: 'Năm {{events.0.year}}', font: SERIF, size: 30, weight: '700', upper: true, anim: IN_LEFT,
-    }),
-    text('sec-event', {
-      top: 1983, left: 142.8, width: 205, height: 106,
-      text: '{{events.0.day}}', font: SERIF, size: 85, weight: '700', color: DEEP,
-    }),
-    hrule('sec-event', 2056, 17.3, 169.7),
-    hrule('sec-event', 2056, 306, 180.5),
-    text('sec-event', {
-      top: 2091.6, left: 32.3, width: 448, height: 43,
-      text: '({{events.0.lunarText}})', font: SERIF, size: 21, weight: '400',
-    }),
-    text('sec-event', {
-      top: 2148.2, left: 25.5, width: 448, height: 52,
-      text: 'Địa điểm tổ chức', font: SERIF, size: 26, weight: '400', upper: true,
-    }),
-    text('sec-event', {
-      top: 2200.4, left: 22.5, width: 448, height: 54,
-      text: '{{events.0.venue}}', font: SERIF, size: 27, weight: '700', upper: true,
-    }),
-    text('sec-event', {
-      top: 2246.3, left: 32.3, width: 448, height: 43,
-      text: '({{events.0.address}})', font: SERIF, size: 20, weight: '400',
-    }),
-    box('sec-event', { top: 2288, left: 42.5, width: 415, height: 255.7, fill: '#ffffff' }),
-    createNode('Map', 'sec-event', {
-      top: 2294.9, left: 48.7, width: 401.5, height: 241.8, zIndex: 1,
-      mode: 'embed',
-      label: 'Bản đồ tới {{events.0.venue}}',
-      query: '{{events.0.venue}} {{events.0.address}}',
-      fontFamily: SANS, fontSize: 13,
-      ...fx('slide-up', 0.3),
-    }),
+    // Tiêu đề lấy từ chính sự kiện, không đóng cứng: mỗi đám cưới gọi tên hai
+    // buổi tiệc một kiểu, và mẫu không nên áp đặt cách gọi của một nhà nào.
+    ...partyBlock('sec-event', 1904.2, 'events.0', 'left', 0),
+    ...partyBlock('sec-event', 2304.2, 'events.1', 'right', 2),
 
     // ═══════════ Sweet wedding ═══════════
     box('sec-sweet', {
@@ -672,7 +716,7 @@ export function sweetTemplate(): TemplateDoc {
     }),
     text('sec-date', {
       top: 5095.5, left: 391.6, width: 132, height: 30,
-      text: '{{events.0.monthText}} / {{events.0.year}}',
+      text: '{{events.1.monthText}} / {{events.1.year}}',
       font: SANS, size: 17, color: '#ffffff', rotation: 90, z: 37, anim: IN_LEFT,
     }),
     box('sec-date', {
@@ -681,14 +725,25 @@ export function sweetTemplate(): TemplateDoc {
     photo('sec-date', {
       top: 5143.9, left: 57.3, width: 442.8, height: 670.2, img: SEED_KEYS.album[2]!, slot: 'album3', z: 34,
     }),
+    // Thanh tiêu đề tháng: lịch nằm đè lên ảnh nên thiếu nó thì mấy con số trôi
+    // lơ lửng, không ai đọc ra ngay đó là một tờ lịch.
+    box('sec-date', {
+      top: 5468, left: 171.1, width: 315.6, height: 40,
+      fill: BLUSH, z: 38, anim: MEDIA_LEFT,
+    }),
+    text('sec-date', {
+      top: 5468, left: 185, width: 200, height: 40,
+      text: '{{events.1.monthText}}', font: SERIF, size: 20, weight: '700',
+      color: DEEP, align: 'left', z: 41, anim: IN_LEFT,
+    }),
     box('sec-date', {
       top: 5510.7, left: 171.1, width: 315.6, height: 279.1,
       fill: PAPER, opacity: 0.37, border: [1, ROSE], z: 39,
     }),
     createNode('Calendar', 'sec-date', {
       top: 5509.2, left: 176.9, width: 311.1, height: 278.5, zIndex: 40,
-      month: '{{events.0.datetime}}',
-      markedDates: ['{{events.0.datetime}}'],
+      month: '{{events.1.datetime}}',
+      markedDates: ['{{events.1.datetime}}'],
       markerIcon: SEED_KEYS.heart,
       themeColor: ROSE, color: '#000000',
       fontFamily: SYS, fontSize: 14,
@@ -700,9 +755,12 @@ export function sweetTemplate(): TemplateDoc {
     box('sec-timeline', {
       top: 5869.7, left: 232, width: 1.5, height: 193, fill: RULE, anim: MEDIA_UP,
     }),
-    ...timelineRow('sec-timeline', 5869.7, SEED_KEYS.car, 41, '08:00&nbsp; &nbsp;: Lễ rước dâu', 42),
-    ...timelineRow('sec-timeline', 5936.7, SEED_KEYS.handsHeart, 31.8, '09:30&nbsp; &nbsp;: Chụp hình lưu niệm', 45),
-    ...timelineRow('sec-timeline', 6013.4, SEED_KEYS.champagne, 38.3, '10:00&nbsp; &nbsp;: Khai tiệc', 48),
+    ...timelineRow('sec-timeline', 5869.7, SEED_KEYS.champagne, 38.3,
+      '{{events.0.time}}&nbsp; : Khai tiệc — Lễ vu quy', 42),
+    ...timelineRow('sec-timeline', 5936.7, SEED_KEYS.car, 41,
+      '{{events.2.time}}&nbsp; : Lễ rước dâu', 45),
+    ...timelineRow('sec-timeline', 6013.4, SEED_KEYS.handsHeart, 31.8,
+      '{{events.1.time}}&nbsp; : Khai tiệc — Lễ thành hôn', 48),
 
     // ═══════════ Xác nhận tham dự ═══════════
     photo('sec-rsvp', {
@@ -797,6 +855,7 @@ export function sweetTemplate(): TemplateDoc {
   ];
 
   for (const node of nodes) {
+    if (SHIFTED_SECTIONS.has(node.sectionId)) node.props.top += EVENT_GROWTH;
     doc.nodes[node.id] = node;
     doc.order.push(node.id);
   }
