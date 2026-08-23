@@ -13,7 +13,8 @@
     "passwd": "tsx scripts/set-password.mts",
     "assets:migrate": "tsx scripts/migrate-assets.mts",
     "s3:dev": "tsx scripts/minio-dev.mts",
-    "seed:templates": "tsx scripts/seed-templates.mts"
+    "seed:templates": "tsx scripts/seed-templates.mts",
+    "split": "tsx scripts/split-invite.mts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1115.0",
