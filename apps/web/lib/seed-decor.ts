@@ -189,22 +189,74 @@ export function coupleFigureSvg(): string {
 </svg>`;
 }
 
-/** Dấu xi gắn giữa nắp bì thư */
+/**
+ * Đường viền mềm, gợn sóng — mép sáp chảy ra rồi đông lại.
+ *
+ * Nối các điểm bằng đường bậc hai đi qua trung điểm hai cạnh kề: cách này cho
+ * đường cong khép kín liền mạch, không có góc nhọn ở chỗ nối. Một vòng tròn
+ * đều tăm tắp trông như cái nút áo chứ không ra dấu xi.
+ */
+function blobPath(cx: number, cy: number, r: number, bumps: number, amp: number, seed = 1): string {
+  const pts: Array<[number, number]> = [];
+  const n = bumps * 2;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2;
+    // Nhiễu tất định: mỗi lần dựng ra đúng một hình, không nhấp nháy giữa các lần seed
+    const jitter = Math.sin(i * 12.9898 * seed) * 0.5 + 0.5;
+    const rr = r + (i % 2 === 0 ? amp * (0.6 + jitter * 0.8) : -amp * (0.3 + jitter * 0.5));
+    pts.push([cx + Math.cos(a) * rr, cy + Math.sin(a) * rr]);
+  }
+  const mid = (a: [number, number], b: [number, number]) =>
+    `${((a[0] + b[0]) / 2).toFixed(2)} ${((a[1] + b[1]) / 2).toFixed(2)}`;
+
+  let d = `M ${mid(pts[n - 1]!, pts[0]!)}`;
+  for (let i = 0; i < n; i++) {
+    const p = pts[i]!;
+    d += ` Q ${p[0].toFixed(2)} ${p[1].toFixed(2)} ${mid(p, pts[(i + 1) % n]!)}`;
+  }
+  return d + ' Z';
+}
+
+/**
+ * Dấu xi gắn giữa nắp bì thư.
+ *
+ * Ba lớp làm nên cảm giác sáp: khối sáp mép gợn sóng, một vòng lõm do con dấu
+ * ấn xuống, và trái tim nổi ở giữa. Trái tim vẽ hai lần — bản tối lệch xuống
+ * làm bóng đổ trong lòng vết ấn, bản sáng nằm trên — vì một hình phẳng một màu
+ * thì nhìn như sticker dán lên chứ không phải vết dấu ấn vào sáp.
+ */
 export function waxSealSvg(): string {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 100 100">
+  const outer = blobPath(50, 50, 42, 13, 4.2, 1);
+  const inner = blobPath(50, 50, 31, 11, 2.0, 2.7);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 100 100">
   <defs>
-    <radialGradient id="w" cx="0.35" cy="0.3" r="0.8">
-      <stop offset="0%" stop-color="#c9a15f"/>
-      <stop offset="60%" stop-color="#a97f43"/>
-      <stop offset="100%" stop-color="#7d5a2b"/>
+    <radialGradient id="wax" cx="0.34" cy="0.28" r="0.85">
+      <stop offset="0%" stop-color="#e9cd93"/>
+      <stop offset="42%" stop-color="#c9a35c"/>
+      <stop offset="78%" stop-color="#a07c3a"/>
+      <stop offset="100%" stop-color="#6f5222"/>
     </radialGradient>
+    <radialGradient id="dish" cx="0.5" cy="0.42" r="0.7">
+      <stop offset="0%" stop-color="#a8843f"/>
+      <stop offset="100%" stop-color="#c8a45e"/>
+    </radialGradient>
+    <filter id="soft" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="1.1"/>
+    </filter>
   </defs>
-  <path d="M50 4c9 0 12 7 20 9s14-2 18 6-2 14 1 22 8 12 3 20-13 5-19 11-6 13-15 15-13-4-21-4-12 6-20 3-8-10-13-16-12-8-13-17 5-13 5-21-5-13 0-20 12-4 19-7S41 4 50 4z"
-        fill="url(#w)"/>
-  <circle cx="50" cy="50" r="30" fill="none" stroke="#6f4d22" stroke-width="2.5" opacity="0.55"/>
-  <g transform="translate(29 28) scale(0.42)">
-    <path d="${HEART_PATH}" fill="#6f4d22" opacity="0.6"/>
+
+  <path d="${outer}" fill="#4a3616" opacity="0.35" transform="translate(1.4 2.2)" filter="url(#soft)"/>
+  <path d="${outer}" fill="url(#wax)"/>
+  <path d="${inner}" fill="url(#dish)"/>
+  <path d="${inner}" fill="none" stroke="#7a5c28" stroke-width="0.9" opacity="0.55"/>
+
+  <g transform="translate(31 30) scale(0.38)">
+    <path d="${HEART_PATH}" fill="#6b4f20" opacity="0.85" transform="translate(0 4)"/>
+    <path d="${HEART_PATH}" fill="#dfbe83"/>
   </g>
+
+  <path d="M28 26q10-9 24-7" fill="none" stroke="#f0dcae" stroke-width="2.6"
+        stroke-linecap="round" opacity="0.45"/>
 </svg>`;
 }
 

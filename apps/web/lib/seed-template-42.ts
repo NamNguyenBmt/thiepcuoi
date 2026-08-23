@@ -24,13 +24,13 @@ import { SEED_KEYS } from './seed-assets';
 
 // ─────────────────────────── Bảng màu ───────────────────────────
 
-const CREAM = '#f9f1ef';   // nền toàn thiệp
+const CREAM = '#fdf9f7';   // nền toàn thiệp — trắng ngà, không trắng tinh
 const DEEP = '#8b2f30';    // đỏ rượu — tên, tiêu đề lớn
 const BRICK = '#834343';   // đỏ nhạt hơn — chữ nhỏ in hoa
 const INK = '#3b3232';     // chữ thân
 const ROSE = '#e49696';    // hồng nhấn — nút, tim, mốc giờ
 const BLUSH = '#dfbaba';   // hồng phấn — khối nền lớn
-const PAPER = '#f8f1f1';   // trắng ngà — khung ảnh
+const PAPER = '#fbf5f5';   // hồng rất nhạt — khung ảnh, đủ tách khỏi nền
 const COUNTDOWN = '#a3403d';
 const RULE = '#999999';
 
@@ -323,11 +323,16 @@ function partyBlock(
  */
 function shadowedWord(
   section: string, top: number, left: number, width: number,
-  word: string, spacing: number, shadowColor: string, z: number,
+  word: string, shadowColor: string, z: number,
 ) {
-  const common = { top, width, height: 60, text: word, font: SANS, size: 48, spacing, upper: true, anim: IN_LEFT };
+  // Bóng lệch 1.6px chứ không 2.3: nét thư pháp mảnh hơn nét chữ in hoa, lệch
+  // nhiều thì hai bản tách hẳn ra thành hai chữ chồng nhau chứ không ra bóng.
+  const common = {
+    top, width, height: 70, text: word, font: FORMAL, size: 58,
+    weight: '400' as const, anim: IN_LEFT,
+  };
   return [
-    text(section, { ...common, left: left + 2.3, color: shadowColor, z }),
+    text(section, { ...common, left: left + 1.6, color: shadowColor, z }),
     text(section, { ...common, left, color: '#ffffff', z: z + 1 }),
   ];
 }
@@ -604,13 +609,17 @@ export function sweetTemplate(): TemplateDoc {
       top: 2608.5, left: 24.4, width: 463.8, height: 53,
       text: 'SWEET WEDDING', font: SYS, size: 23, color: BRICK, spacing: 16, z: 7,
     }),
+    // Ảnh vuông bắt đầu ở x=150, nên hai chữ này phải nằm gọn bên trái mốc đó —
+    // canh trái thay vì canh giữa, không thì chữ trôi vào giữa tấm ảnh.
     text('sec-sweet', {
-      top: 2738.7, left: -1.6, width: 258, height: 60,
-      text: 'marry', font: SANS, size: 48, color: BRICK, spacing: 13, upper: true, z: 8, anim: IN_RIGHT,
+      top: 2738.7, left: 14, width: 200, height: 70,
+      text: 'Marry', font: FORMAL, size: 58, weight: '400', color: BRICK,
+      align: 'left', z: 8, anim: IN_RIGHT,
     }),
     text('sec-sweet', {
-      top: 2834.5, left: 10, width: 205, height: 61,
-      text: 'me?', font: SANS, size: 49, color: BRICK, spacing: 8, upper: true, z: 9, anim: IN_RIGHT,
+      top: 2822, left: 44, width: 180, height: 70,
+      text: 'me?', font: FORMAL, size: 58, weight: '400', color: BRICK,
+      align: 'left', z: 9, anim: IN_RIGHT,
     }),
     photo('sec-sweet', {
       top: 2931.5, left: 11, width: 300, height: 450, img: SEED_KEYS.bride, slot: 'bride', z: 11,
@@ -619,10 +628,8 @@ export function sweetTemplate(): TemplateDoc {
       top: 3156.7, left: 361.9, width: 122.6, height: 80.9, img: SEED_KEYS.hearts, z: 16, anim: MEDIA_LEFT,
     }),
     // Mỗi chữ hai bản: bản sẫm lệch sang phải 2px làm bóng cho bản trắng đè lên
-    ...shadowedWord('sec-sweet', 3207.7, 315, 155.5, 'yes', 13, BRICK, 10),
-    ...shadowedWord('sec-sweet', 3207.7, 435.1, 64.9, '!', 13, DEEP, 12),
-    ...shadowedWord('sec-sweet', 3278.7, 292.5, 155.5, 'i', 13, DEEP, 12),
-    ...shadowedWord('sec-sweet', 3278.7, 375.5, 101, 'do', 2, DEEP, 14),
+    ...shadowedWord('sec-sweet', 3200, 296, 196, 'Yes!', BRICK, 10),
+    ...shadowedWord('sec-sweet', 3274, 296, 196, 'I do', DEEP, 12),
 
     // ═══════════ Cô dâu ═══════════
     text('sec-bride', {
@@ -660,7 +667,7 @@ export function sweetTemplate(): TemplateDoc {
     }),
     text('sec-bride', {
       top: 3960.4, left: 349.1, width: 172.1, height: 59,
-      text: 'Bride', font: SERIF, size: 30, weight: '700', color: BLUSH, spacing: 7,
+      text: 'Bride', font: FORMAL, size: 36, weight: '400', color: BLUSH, spacing: 2,
       rotation: 90, z: 29, anim: IN_LEFT,
     }),
 
@@ -700,14 +707,14 @@ export function sweetTemplate(): TemplateDoc {
     }),
     text('sec-groom', {
       top: 4815.1, left: -34.4, width: 172.1, height: 59,
-      text: 'Groom', font: SERIF, size: 30, weight: '700', color: BLUSH, spacing: 7,
+      text: 'Groom', font: FORMAL, size: 36, weight: '400', color: BLUSH, spacing: 2,
       rotation: 270, z: 30, anim: IN_RIGHT,
     }),
 
     // ═══════════ Save the date ═══════════
     text('sec-date', {
       top: 5053.2, left: 142.8, width: 299.5, height: 35,
-      text: 'Save the date', font: SERIF, size: 35, color: DEEP, z: 33,
+      text: 'Save the date', font: FORMAL, size: 46, weight: '400', color: DEEP, z: 33,
     }),
     decor('sec-date', {
       top: 5068, left: 126.5, width: 55, height: 44, img: SEED_KEYS.sparkle, z: 35,
@@ -718,7 +725,7 @@ export function sweetTemplate(): TemplateDoc {
     text('sec-date', {
       top: 5095.5, left: 391.6, width: 132, height: 30,
       text: '{{events.1.monthText}} / {{events.1.year}}',
-      font: SANS, size: 17, color: '#ffffff', rotation: 90, z: 37, anim: IN_LEFT,
+      font: FORMAL, size: 22, weight: '400', color: '#ffffff', rotation: 90, z: 37, anim: IN_LEFT,
     }),
     box('sec-date', {
       top: 5112, left: 37.7, width: 461, height: 235.9, fill: PAPER, border: [1, DEEP], z: 28,
@@ -734,7 +741,7 @@ export function sweetTemplate(): TemplateDoc {
     }),
     text('sec-date', {
       top: 5468, left: 185, width: 200, height: 40,
-      text: '{{events.1.monthText}}', font: SERIF, size: 20, weight: '700',
+      text: '{{events.1.monthText}}', font: FORMAL, size: 28, weight: '400',
       color: DEEP, align: 'left', z: 41, anim: IN_LEFT,
     }),
     box('sec-date', {
@@ -748,8 +755,10 @@ export function sweetTemplate(): TemplateDoc {
       // tự lọc bỏ, nên hai buổi khác tháng cũng không làm vỡ lưới.
       markedDates: ['{{events.0.datetime}}', '{{events.1.datetime}}'],
       markerIcon: SEED_KEYS.heart,
-      themeColor: ROSE, color: '#000000',
-      fontFamily: SYS, fontSize: 14,
+      themeColor: ROSE, color: INK,
+      // Chữ số giữ font serif chứ không dùng font thư pháp như tiêu đề: một
+      // lưới 7 cột toàn số viết tay là thứ không ai dò ra ngày cưới nằm đâu.
+      fontFamily: SERIF, fontSize: 14,
       weekStartsOn: 1, showLunar: false,
       ...fx('slide-up', 0.3),
     }),
