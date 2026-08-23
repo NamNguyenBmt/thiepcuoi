@@ -57,6 +57,10 @@ export function PhotoNode({ node }: NodeProps<'Photo'>) {
 
   const mask = p.maskShapeImg ? imageUrl(assetBase, p.maskShapeImg, renderWidth, dpr, { format: 'png' }) : null;
 
+  // Ảnh mờ phải phóng to lên một chút và cắt bớt: `filter: blur()` làm nhoè cả
+  // ra ngoài mép ảnh, để nguyên thì bốn cạnh loang ra thành viền mờ.
+  const blurred: CSSProperties = p.blur > 0 ? { overflow: 'hidden' } : {};
+
   const inner: CSSProperties = mask
     ? {
         WebkitMaskImage: `url("${mask}")`,
@@ -67,6 +71,7 @@ export function PhotoNode({ node }: NodeProps<'Photo'>) {
         maskRepeat: 'no-repeat',
       }
     : {};
+  Object.assign(inner, blurred);
 
   if (!src) {
     /**
@@ -103,6 +108,8 @@ export function PhotoNode({ node }: NodeProps<'Photo'>) {
           objectFit: p.objectFit,
           display: 'block',
           borderRadius: 'inherit',
+          filter: p.blur > 0 ? `blur(${p.blur}px)` : undefined,
+          transform: p.blur > 0 ? `scale(${1 + p.blur / 22})` : undefined,
         }}
       />
     </NodeShell>

@@ -44,6 +44,7 @@ const TYPE_FIELDS: Partial<Record<NodeType, Field[]>> = {
     { kind: 'image', key: 'imgKey', label: 'Ảnh' },
     { kind: 'text', key: 'slot', label: 'Slot' },
     { kind: 'image', key: 'maskShapeImg', label: 'Mask' },
+    { kind: 'number', key: 'blur', label: 'Làm mờ (px)' },
     { kind: 'select', key: 'objectFit', label: 'Lấp khung', options: [['cover', 'Cover'], ['contain', 'Contain']] },
     { kind: 'check', key: 'isReplaceable', label: 'Cho thay ảnh' },
     { kind: 'check', key: 'flipX', label: 'Lật ngang' },

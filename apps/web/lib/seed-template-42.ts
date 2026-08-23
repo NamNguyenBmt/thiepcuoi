@@ -213,6 +213,8 @@ interface PhotoOpts {
   /** Nền và lề trắng quanh ảnh — biến mất cùng ảnh khi thiệp không có ảnh đó */
   bg?: string;
   pad?: number;
+  /** Làm mờ ảnh nền, px — dành cho ảnh nằm dưới chữ */
+  blur?: number;
   z?: number;
   anim?: ReturnType<typeof fx>;
 }
@@ -225,6 +227,7 @@ function photo(section: string, o: PhotoOpts) {
     maskShapeImg: o.mask ?? null,
     objectFit: 'cover',
     isReplaceable: true,
+    blur: o.blur ?? 0,
     backgroundColor: o.bg ?? 'transparent',
     padding: [o.pad ?? 0, o.pad ?? 0, o.pad ?? 0, o.pad ?? 0],
     zIndex: o.z ?? 0,
@@ -264,32 +267,32 @@ function partyBlock(
   return [
     text(section, {
       top, left: 25.5, width: 448, height: 53,
-      text: `{{${ev}.title}}`, font: SERIF, size: 26, weight: '700', upper: true, z,
+      text: `{{${ev}.title}}`, font: SERIF, size: 31, weight: '700', upper: true, z,
     }),
     text(section, {
       top: top + 45, left: 25.5, width: 448, height: 43,
       text: `Vào lúc {{${ev}.time}} {{${ev}.weekday}}`,
-      font: SERIF, size: 21, weight: '700', upper: true, z,
+      font: SERIF, size: 25, weight: '700', upper: true, z,
     }),
     hrule(section, top + 92, 17.3, 169.7),
     hrule(section, top + 92, 306, 180.5),
     text(section, {
       top: top + 99, left: 17.3, width: 169.7, height: 46,
-      text: `{{${ev}.monthText}}`, font: SERIF, size: 30, weight: '700', upper: true, z, anim: IN_RIGHT,
+      text: `{{${ev}.monthText}}`, font: SERIF, size: 33, weight: '700', upper: true, z, anim: IN_RIGHT,
     }),
     text(section, {
       top: top + 99, left: 306, width: 180.5, height: 46,
-      text: `Năm {{${ev}.year}}`, font: SERIF, size: 30, weight: '700', upper: true, z, anim: IN_LEFT,
+      text: `Năm {{${ev}.year}}`, font: SERIF, size: 33, weight: '700', upper: true, z, anim: IN_LEFT,
     }),
     text(section, {
       top: top + 79, left: 142.8, width: 205, height: 106,
-      text: `{{${ev}.day}}`, font: SERIF, size: 85, weight: '700', color: DEEP, z,
+      text: `{{${ev}.day}}`, font: SERIF, size: 94, weight: '700', color: DEEP, z,
     }),
     hrule(section, top + 152, 17.3, 169.7),
     hrule(section, top + 152, 306, 180.5),
     text(section, {
       top: top + 188, left: 32.3, width: 448, height: 40,
-      text: `({{${ev}.lunarText}})`, font: SERIF, size: 19, weight: '400', z,
+      text: `({{${ev}.lunarText}})`, font: SERIF, size: 22, weight: '400', z,
     }),
 
     // Bản đồ nhỏ trong góc, có khung trắng mảnh như một tấm ảnh dán vào thiệp
@@ -306,12 +309,12 @@ function partyBlock(
       ...fx('slide-up', 0.3),
     }),
     text(section, {
-      top: top + 238, left: textLeft, width: textWidth, height: 30,
+      top: top + 232, left: textLeft, width: textWidth, height: 40,
       text: `{{${ev}.venue}}`, font: SERIF, size: 22, weight: '700', upper: true, z,
     }),
     text(section, {
-      top: top + 270, left: textLeft, width: textWidth, height: 62,
-      text: `{{${ev}.address}}`, font: SANS, size: 13, lineHeight: '1.6', z,
+      top: top + 274, left: textLeft, width: textWidth, height: 58,
+      text: `{{${ev}.address}}`, font: SANS, size: 16, lineHeight: '1.55', z,
     }),
   ];
 }
@@ -328,7 +331,7 @@ function shadowedWord(
   // Bóng lệch 1.6px chứ không 2.3: nét thư pháp mảnh hơn nét chữ in hoa, lệch
   // nhiều thì hai bản tách hẳn ra thành hai chữ chồng nhau chứ không ra bóng.
   const common = {
-    top, width, height: 70, text: word, font: FORMAL, size: 58,
+    top, width, height: 70, text: word, font: FORMAL, size: 64,
     weight: '400' as const, anim: IN_LEFT,
   };
   return [
@@ -347,7 +350,7 @@ function timelineRow(section: string, top: number, img: string, size: number, la
     decor(section, { top: top + 13, left: 220, width: 22.5, height: 22.5, img: SEED_KEYS.heartRose, z, anim: MEDIA_UP }),
     text(section, {
       top: top + 6, left: 251, width: 240, height: 46,
-      text: label, font: SERIF, size: 15, color: '#000000', align: 'left',
+      text: label, font: SERIF, size: 20, color: '#000000', align: 'left',
       lineHeight: '1.45', z: z + 2,
     }),
   ];
@@ -391,7 +394,7 @@ function giftCard(
     }),
     text(section, {
       top: top + 22, left: textMid - 75, width: 150, height: 30,
-      text: opts.role, font: FORMAL, size: 24, weight: '400', color: INK, z: z + 3, anim: STILL,
+      text: opts.role, font: FORMAL, size: 28, weight: '400', color: INK, z: z + 3, anim: STILL,
     }),
     text(section, {
       // 21px chứ không 24: cột chữ chỉ rộng 170px (thẻ 278 trừ chỗ mã QR), mà
@@ -403,7 +406,7 @@ function giftCard(
     // khoản, chữ số viết tay là mời nhập nhầm một con số.
     text(section, {
       top: top + 94, left: textMid - 80, width: 160, height: 20,
-      text: opts.accountToken, size: 12, color: INK, z: z + 5, anim: STILL,
+      text: opts.accountToken, size: 14, color: INK, z: z + 5, anim: STILL,
     }),
   ];
 }
@@ -455,23 +458,23 @@ export function sweetTemplate(): TemplateDoc {
     // ═══════════ Bì thư ═══════════
     text('sec-cover', {
       top: 12.3, left: 10, width: 480, height: 22,
-      text: 'WEDDING INVITATION', font: SYS, size: 16, color: BRICK, spacing: 9,
+      text: 'WEDDING INVITATION', font: SYS, size: 21, color: BRICK, spacing: 9,
     }),
     text('sec-cover', {
       top: 53.9, left: 10, width: 480, height: 34,
-      text: 'Thiệp mời cưới', font: SYS, size: 26, color: BRICK, spacing: 2, upper: true,
+      text: 'Thiệp mời cưới', font: SYS, size: 31, color: BRICK, spacing: 2, upper: true,
     }),
     text('sec-cover', {
       top: 114, left: 31, width: 177, height: 54,
-      text: '{{bride.shortName}}', font: FORMAL, size: 39, weight: '400', color: '#000000', anim: IN_RIGHT,
+      text: '{{bride.shortName}}', font: FORMAL, size: 43, weight: '400', color: '#000000', anim: IN_RIGHT,
     }),
     text('sec-cover', {
       top: 114, left: 280.5, width: 177, height: 54,
-      text: '{{groom.shortName}}', font: FORMAL, size: 39, weight: '400', color: '#000000', anim: IN_LEFT,
+      text: '{{groom.shortName}}', font: FORMAL, size: 43, weight: '400', color: '#000000', anim: IN_LEFT,
     }),
     text('sec-cover', {
       top: 118.5, left: 200.5, width: 97.4, height: 54,
-      text: '&amp;', font: FORMAL, size: 38, weight: '400', color: BRICK,
+      text: '&amp;', font: FORMAL, size: 42, weight: '400', color: BRICK,
     }),
     decor('sec-cover', {
       top: 189.3, left: 219.7, width: 53.3, height: 52, img: SEED_KEYS.doubleHappiness,
@@ -493,13 +496,13 @@ export function sweetTemplate(): TemplateDoc {
     }),
     text('sec-cover', {
       top: 630.4, left: 110.6, width: 282.5, height: 45,
-      text: 'Chạm để mở thiệp', font: SCRIPT, size: 25, color: DEEP, z: 80,
+      text: 'Chạm để mở thiệp', font: SCRIPT, size: 30, color: DEEP, z: 80,
       anim: fx('slide-up', 0.4, 1.6),
     }),
 
     // ═══════════ Lời mời ═══════════
     photo('sec-intro', {
-      top: 720, left: 2, width: 495, height: 697, img: SEED_KEYS.cover, slot: 'cover',
+      top: 720, left: 2, width: 495, height: 697, img: SEED_KEYS.cover, slot: 'cover', blur: 5,
     }),
     box('sec-intro', {
       top: 1049.7, left: 31.9, width: 448.4, height: 346.5, fill: '#ffffff', opacity: 0.55,
@@ -508,16 +511,16 @@ export function sweetTemplate(): TemplateDoc {
       top: 1025.9, left: 108.5, width: 310, height: 65,
       targetDate: '{{events.1.datetime}}',
       themeColor: COUNTDOWN, color: '#ffffff',
-      fontFamily: SYS, fontSize: 14, spacing: 8,
+      fontFamily: SYS, fontSize: 18, spacing: 8,
       expiredText: 'Chúng mình đã về chung một nhà',
       ...fx('slide-up', 0.3),
     }),
     text('sec-intro', {
       top: 1135.3, left: 38.3, width: 442, height: 31,
-      text: 'INVITATION', font: SYS, size: 26, color: DEEP, spacing: 11,
+      text: 'INVITATION', font: SYS, size: 31, color: DEEP, spacing: 11,
     }),
     text('sec-intro', {
-      top: 1192.4, left: 74, width: 365, height: 194,
+      top: 1190, left: 50, width: 400, height: 200,
       text:
         'Gửi đến gia đình và bạn bè thân mến,<br>' +
         'Cảm ơn bạn đã dành thời gian quý báu để cùng chúng mình chung vui ' +
@@ -525,67 +528,67 @@ export function sweetTemplate(): TemplateDoc {
         'đồng hành và ủng hộ của bạn, và thật vinh hạnh khi được chia sẻ ' +
         'niềm hạnh phúc của chúng mình cùng bạn.<br>' +
         'Trân trọng kính mời bạn đến dự lễ cưới của chúng mình',
-      font: SANS, size: 15, color: DEEP, lineHeight: '1.62',
+      font: SANS, size: 18, color: DEEP, lineHeight: '1.45',
     }),
 
     // ═══════════ Lễ thành hôn ═══════════
     vrule('sec-vows', 1425.5, 52, 74),
     text('sec-vows', {
       top: 1491, left: 100.8, width: 248.5, height: 34,
-      text: '{{groom.fullName}}', font: SCRIPT, size: 37, weight: '700', color: DEEP,
+      text: '{{groom.fullName}}', font: SCRIPT, size: 34, weight: '700', color: DEEP,
     }),
     text('sec-vows', {
       top: 1509, left: 8, width: 90, height: 31,
-      text: 'Lễ', font: SCRIPT, size: 26, weight: '700', color: '#000000', anim: IN_RIGHT,
+      text: 'Lễ', font: SCRIPT, size: 31, weight: '700', color: '#000000', anim: IN_RIGHT,
     }),
     text('sec-vows', {
       top: 1543.8, left: 153, width: 206.5, height: 49,
-      text: '&amp;', font: SCRIPT, size: 38, weight: '700', color: DEEP,
+      text: '&amp;', font: SCRIPT, size: 42, weight: '700', color: DEEP,
     }),
     text('sec-vows', {
       top: 1551.9, left: 8, width: 90, height: 33,
-      text: 'Thành', font: SCRIPT, size: 26, weight: '700', color: '#000000', anim: IN_RIGHT,
+      text: 'Thành', font: SCRIPT, size: 31, weight: '700', color: '#000000', anim: IN_RIGHT,
     }),
     text('sec-vows', {
       top: 1598, left: 8, width: 90, height: 33,
-      text: 'Hôn', font: SCRIPT, size: 26, weight: '700', color: '#000000', anim: IN_RIGHT,
+      text: 'Hôn', font: SCRIPT, size: 31, weight: '700', color: '#000000', anim: IN_RIGHT,
     }),
     text('sec-vows', {
       top: 1607.4, left: 231.5, width: 248.5, height: 48,
-      text: '{{bride.fullName}}', font: SCRIPT, size: 37, weight: '700', color: DEEP, anim: IN_LEFT,
+      text: '{{bride.fullName}}', font: SCRIPT, size: 34, weight: '700', color: DEEP, anim: IN_LEFT,
     }),
     vrule('sec-vows', 1656, 52, 67),
 
     text('sec-vows', {
       top: 1729.9, left: 0, width: 201.5, height: 31,
-      text: 'Nhà Trai', font: SERIF, size: 23, color: '#000000', anim: IN_RIGHT,
+      text: 'Nhà Trai', font: SERIF, size: 27, color: '#000000', anim: IN_RIGHT,
     }),
     text('sec-vows', {
-      top: 1773.2, left: 3.9, width: 193.9, height: 31,
+      top: 1773.2, left: -18, width: 235, height: 31,
       text: 'Ông: {{groom.father}}', font: SANS, size: 18, color: '#000000', anim: IN_RIGHT,
     }),
     text('sec-vows', {
-      top: 1802.2, left: 3.9, width: 193.9, height: 23,
+      top: 1804, left: -18, width: 235, height: 26,
       text: 'Bà: {{groom.mother}}', font: SANS, size: 18, color: '#000000', anim: IN_RIGHT,
     }),
     text('sec-vows', {
-      top: 1835, left: 3.9, width: 193.9, height: 23,
+      top: 1836, left: -18, width: 235, height: 26,
       text: '{{groom.address}}', font: SANS, size: 18, color: '#000000', anim: IN_RIGHT,
     }),
     text('sec-vows', {
       top: 1729.9, left: 296.1, width: 201.5, height: 31,
-      text: 'Nhà Gái', font: SERIF, size: 23, color: '#000000', anim: IN_LEFT,
+      text: 'Nhà Gái', font: SERIF, size: 27, color: '#000000', anim: IN_LEFT,
     }),
     text('sec-vows', {
       top: 1773.2, left: 265.1, width: 235, height: 31,
       text: 'Ông: {{bride.father}}', font: SANS, size: 18, color: '#000000', anim: IN_LEFT,
     }),
     text('sec-vows', {
-      top: 1802.2, left: 263.6, width: 235, height: 23,
+      top: 1804, left: 263.6, width: 235, height: 26,
       text: 'Bà: {{bride.mother}}', font: SANS, size: 18, color: '#000000', anim: IN_LEFT,
     }),
     text('sec-vows', {
-      top: 1835, left: 280.5, width: 193.9, height: 23,
+      top: 1836, left: 263.6, width: 235, height: 26,
       text: '{{bride.address}}', font: SANS, size: 18, color: '#000000', anim: IN_LEFT,
     }),
 
@@ -611,7 +614,7 @@ export function sweetTemplate(): TemplateDoc {
     }),
     text('sec-sweet', {
       top: 2608.5, left: 24.4, width: 463.8, height: 53,
-      text: 'SWEET WEDDING', font: SYS, size: 23, color: BRICK, spacing: 16, z: 7,
+      text: 'SWEET WEDDING', font: SYS, size: 27, color: BRICK, spacing: 16, z: 7,
     }),
     /**
      * Mốc phải né là **khung viền** ở x=150, không phải mép ảnh.
@@ -644,7 +647,7 @@ export function sweetTemplate(): TemplateDoc {
     // ═══════════ Cô dâu ═══════════
     text('sec-bride', {
       top: 3423.1, left: -8, width: 370.2, height: 52,
-      text: 'About us', font: SCRIPT, size: 48, color: DEEP, z: 17,
+      text: 'About us', font: SCRIPT, size: 53, color: DEEP, z: 17,
     }),
     decor('sec-bride', {
       top: 3425.8, left: 54.5, width: 61.7, height: 49.4, img: SEED_KEYS.sparkle, z: 30, anim: MEDIA_RIGHT,
@@ -657,16 +660,16 @@ export function sweetTemplate(): TemplateDoc {
       fill: PAPER, border: [2, DEEP], z: 20, anim: MEDIA_RIGHT,
     }),
     text('sec-bride', {
-      top: 3569.5, left: 45, width: 145, height: 32,
+      top: 3566, left: 40, width: 162, height: 34,
       text: '{{bride.fullName}}', font: SCRIPT, size: 20, weight: '700', z: 22, anim: IN_RIGHT,
     }),
     text('sec-bride', {
-      top: 3605.4, left: 45, width: 145, height: 32,
+      top: 3604, left: 40, width: 162, height: 34,
       text: '{{bride.birthday}}', font: SCRIPT, size: 20, weight: '700', z: 23, anim: IN_RIGHT,
     }),
     text('sec-bride', {
-      top: 3659.9, left: 45, width: 145, height: 40,
-      text: '{{bride.address}}', font: SCRIPT, size: 13, weight: '700', z: 24, anim: IN_RIGHT,
+      top: 3656, left: 40, width: 162, height: 44,
+      text: '{{bride.address}}', font: SCRIPT, size: 17, weight: '700', z: 24, anim: IN_RIGHT,
     }),
     box('sec-bride', {
       top: 3914.5, left: 10.4, width: 417.9, height: 229.3,
@@ -677,14 +680,14 @@ export function sweetTemplate(): TemplateDoc {
     }),
     text('sec-bride', {
       top: 3960.4, left: 349.1, width: 172.1, height: 59,
-      text: 'Bride', font: FORMAL, size: 36, weight: '400', color: BLUSH, spacing: 2,
+      text: 'Bride', font: FORMAL, size: 40, weight: '400', color: BLUSH, spacing: 2,
       rotation: 90, z: 29, anim: IN_LEFT,
     }),
 
     // ═══════════ Chú rể ═══════════
     text('sec-groom', {
       top: 4191.4, left: 14.9, width: 250.1, height: 52,
-      text: 'About us', font: SCRIPT, size: 48, color: DEEP, z: 18, anim: IN_RIGHT,
+      text: 'About us', font: SCRIPT, size: 53, color: DEEP, z: 18, anim: IN_RIGHT,
     }),
     decor('sec-groom', {
       top: 4190.5, left: 38, width: 61.7, height: 49.4, img: SEED_KEYS.sparkle, z: 31, anim: MEDIA_RIGHT,
@@ -697,16 +700,16 @@ export function sweetTemplate(): TemplateDoc {
       fill: PAPER, border: [2, DEEP], z: 21, anim: MEDIA_LEFT,
     }),
     text('sec-groom', {
-      top: 4363.7, left: 344, width: 143, height: 32,
+      top: 4360, left: 334, width: 152, height: 34,
       text: '{{groom.fullName}}', font: SCRIPT, size: 20, weight: '700', z: 23, anim: IN_LEFT,
     }),
     text('sec-groom', {
-      top: 4408.7, left: 344, width: 143, height: 32,
+      top: 4406, left: 334, width: 152, height: 34,
       text: '{{groom.birthday}}', font: SCRIPT, size: 20, weight: '700', z: 24, anim: IN_LEFT,
     }),
     text('sec-groom', {
-      top: 4465.6, left: 348, width: 139, height: 40,
-      text: '{{groom.address}}', font: SCRIPT, size: 13, weight: '700', z: 25, anim: IN_LEFT,
+      top: 4458, left: 334, width: 152, height: 44,
+      text: '{{groom.address}}', font: SCRIPT, size: 17, weight: '700', z: 25, anim: IN_LEFT,
     }),
     box('sec-groom', {
       top: 4782.7, left: 73.7, width: 370.4, height: 227.8,
@@ -717,14 +720,14 @@ export function sweetTemplate(): TemplateDoc {
     }),
     text('sec-groom', {
       top: 4815.1, left: -34.4, width: 172.1, height: 59,
-      text: 'Groom', font: FORMAL, size: 36, weight: '400', color: BLUSH, spacing: 2,
+      text: 'Groom', font: FORMAL, size: 40, weight: '400', color: BLUSH, spacing: 2,
       rotation: 270, z: 30, anim: IN_RIGHT,
     }),
 
     // ═══════════ Save the date ═══════════
     text('sec-date', {
       top: 5053.2, left: 142.8, width: 299.5, height: 35,
-      text: 'Save the date', font: FORMAL, size: 46, weight: '400', color: DEEP, z: 33,
+      text: 'Save the date', font: FORMAL, size: 51, weight: '400', color: DEEP, z: 33,
     }),
     decor('sec-date', {
       top: 5068, left: 126.5, width: 55, height: 44, img: SEED_KEYS.sparkle, z: 35,
@@ -735,7 +738,7 @@ export function sweetTemplate(): TemplateDoc {
     text('sec-date', {
       top: 5095.5, left: 391.6, width: 132, height: 30,
       text: '{{events.1.monthText}} / {{events.1.year}}',
-      font: FORMAL, size: 22, weight: '400', color: '#ffffff', rotation: 90, z: 37, anim: IN_LEFT,
+      font: FORMAL, size: 26, weight: '400', color: '#ffffff', rotation: 90, z: 37, anim: IN_LEFT,
     }),
     box('sec-date', {
       top: 5112, left: 37.7, width: 461, height: 235.9, fill: PAPER, border: [1, DEEP], z: 28,
@@ -751,7 +754,7 @@ export function sweetTemplate(): TemplateDoc {
     }),
     text('sec-date', {
       top: 5468, left: 185, width: 200, height: 40,
-      text: '{{events.1.monthText}}', font: FORMAL, size: 28, weight: '400',
+      text: '{{events.1.monthText}}', font: FORMAL, size: 31, weight: '400',
       color: DEEP, align: 'left', z: 41, anim: IN_LEFT,
     }),
     box('sec-date', {
@@ -768,7 +771,7 @@ export function sweetTemplate(): TemplateDoc {
       themeColor: ROSE, color: INK,
       // Chữ số giữ font serif chứ không dùng font thư pháp như tiêu đề: một
       // lưới 7 cột toàn số viết tay là thứ không ai dò ra ngày cưới nằm đâu.
-      fontFamily: SERIF, fontSize: 14,
+      fontFamily: SERIF, fontSize: 17,
       weekStartsOn: 1, showLunar: false,
       ...fx('slide-up', 0.3),
     }),
@@ -786,21 +789,21 @@ export function sweetTemplate(): TemplateDoc {
 
     // ═══════════ Xác nhận tham dự ═══════════
     photo('sec-rsvp', {
-      top: 6101, left: 0, width: 498.7, height: 911, img: SEED_KEYS.cover, slot: 'cover', z: 49,
+      top: 6101, left: 0, width: 498.7, height: 911, img: SEED_KEYS.cover, slot: 'cover', blur: 5, z: 49,
     }),
     box('sec-rsvp', {
       top: 6132, left: 37.5, width: 417.8, height: 685.3, fill: '#ffffff', opacity: 0.43, z: 50,
     }),
     text('sec-rsvp', {
       top: 6103.3, left: 14.9, width: 482.6, height: 61,
-      text: 'INVITATION', font: SYS, size: 19, color: '#ffffff', spacing: 30, z: 51,
+      text: 'INVITATION', font: SYS, size: 22, color: '#ffffff', spacing: 30, z: 51,
     }),
     photo('sec-rsvp', {
       top: 6160, left: 79.6, width: 340.9, height: 225, img: SEED_KEYS.album[0]!, slot: 'album1', z: 54,
     }),
     text('sec-rsvp', {
       top: 6326.6, left: -172.5, width: 460, height: 56,
-      text: 'I love you forever', font: SCRIPT, size: 40, color: DEEP, spacing: 4,
+      text: 'I love you forever', font: SCRIPT, size: 44, color: DEEP, spacing: 4,
       rotation: 90, z: 56, anim: STILL,
     }),
     photo('sec-rsvp', {
@@ -808,7 +811,7 @@ export function sweetTemplate(): TemplateDoc {
     }),
     text('sec-rsvp', {
       top: 6541.6, left: 216.6, width: 460, height: 56,
-      text: 'Nice to meet you', font: SCRIPT, size: 40, color: DEEP, spacing: 4,
+      text: 'Nice to meet you', font: SCRIPT, size: 44, color: DEEP, spacing: 4,
       rotation: 90, z: 57, anim: STILL,
     }),
     photo('sec-rsvp', {
@@ -829,7 +832,7 @@ export function sweetTemplate(): TemplateDoc {
       submitText: 'Gửi xác nhận',
       successText: 'Cảm ơn bạn! Hẹn gặp trong ngày vui.',
       color: INK, buttonColor: ROSE, buttonTextColor: '#ffffff',
-      fontFamily: FORMAL, fontSize: 21,
+      fontFamily: FORMAL, fontSize: 24,
       backgroundColor: '#ffffff',
       padding: [16, 16, 16, 16],
       ...fx('fade', 0),
@@ -842,11 +845,11 @@ export function sweetTemplate(): TemplateDoc {
         'Mình rất muốn được chụp chung với bạn những tấm hình kỷ niệm vì vậy ' +
         'hãy đến sớm hơn một chút bạn yêu nhé! Đám cưới của chúng mình sẽ trọn ' +
         'vẹn hơn khi có thêm lời chúc phúc và sự hiện diện của các bạn',
-      font: FORMAL, size: 21, weight: '400', color: INK, lineHeight: '1.5', z: 61, anim: STILL,
+      font: FORMAL, size: 25, weight: '400', color: INK, lineHeight: '1.5', z: 61, anim: STILL,
     }),
     text('sec-gift', {
       top: 7514, left: 91.1, width: 315.6, height: 46,
-      text: 'Gửi quà mừng', font: FORMAL, size: 40, weight: '400', color: ROSE, z: 59, anim: STILL,
+      text: 'Gửi quà mừng', font: FORMAL, size: 44, weight: '400', color: ROSE, z: 59, anim: STILL,
     }),
     ...giftCard('sec-gift', 7616.8, 'left', {
       role: 'Cô dâu',
@@ -872,7 +875,7 @@ export function sweetTemplate(): TemplateDoc {
     }),
     text('sec-thanks', {
       top: 8210.4, left: 43.9, width: 404.9, height: 130,
-      text: 'Thank you', font: FORMAL, size: 100, weight: '400', color: DEEP, z: 71, anim: STILL,
+      text: 'Thank you', font: FORMAL, size: 110, weight: '400', color: DEEP, z: 71, anim: STILL,
     }),
   ];
 

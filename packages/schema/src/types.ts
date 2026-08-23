@@ -116,6 +116,13 @@ export interface TextProps extends BaseProps {
 
 export interface PhotoProps extends BaseProps {
   imgKey: AssetKey;
+  /**
+   * Độ mờ tính bằng px, 0 = nét.
+   *
+   * Dành cho ảnh làm nền: chữ đặt trên một tấm ảnh còn nguyên chi tiết thì
+   * đường nét của ảnh cạnh tranh với nét chữ và cả hai cùng khó đọc.
+   */
+  blur: number;
   /** PNG alpha làm mask hình dạng: "shapes/arch-01.png" */
   maskShapeImg: string | null;
   flipX: boolean;

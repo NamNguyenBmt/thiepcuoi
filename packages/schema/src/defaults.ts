@@ -75,6 +75,7 @@ export const NODE_DEFAULTS: DefaultsMap = {
   Photo: () => ({
     ...baseProps({ width: 300, height: 200 }),
     imgKey: '',
+    blur: 0,
     maskShapeImg: null,
     flipX: false,
     flipY: false,
