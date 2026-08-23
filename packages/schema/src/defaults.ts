@@ -43,6 +43,7 @@ export function baseProps(rect: Partial<BaseProps> = {}): BaseProps {
     borderColor: '',
     hasShadow: false,
     boxShadow: { ...DEFAULT_SHADOW },
+    backdropBlur: 0,
     zIndex: 0,
     locked: false,
     hidden: false,

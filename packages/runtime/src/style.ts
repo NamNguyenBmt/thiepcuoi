@@ -46,6 +46,10 @@ export function baseStyle(p: BaseProps, flipX = false, flipY = false): CSSProper
     opacity: p.opacity,
     borderRadius: radius(p.borderRadius),
     boxShadow: p.hasShadow ? shadowCss(p.boxShadow) : undefined,
+    // Safari vẫn cần tiền tố, mà kính mờ hỏng trên iPhone thì hỏng đúng chỗ
+    // đông người xem thiệp nhất
+    backdropFilter: p.backdropBlur ? `blur(${p.backdropBlur}px)` : undefined,
+    WebkitBackdropFilter: p.backdropBlur ? `blur(${p.backdropBlur}px)` : undefined,
     zIndex: p.zIndex,
     transform: transformCss(p, flipX, flipY),
     boxSizing: 'border-box',

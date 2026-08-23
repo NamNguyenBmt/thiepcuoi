@@ -155,6 +155,8 @@ interface BoxOpts {
   rotation?: number;
   z?: number;
   shadow?: boolean;
+  /** Kính mờ: làm nhoè ảnh nằm sau tấm nền, px */
+  frost?: number;
   anim?: ReturnType<typeof fx>;
 }
 
@@ -172,6 +174,7 @@ function box(section: string, o: BoxOpts) {
     rotation: o.rotation ?? 0,
     zIndex: o.z ?? 0,
     hasShadow: o.shadow ?? false,
+    backdropBlur: o.frost ?? 0,
     boxShadow: { offsetX: 0, offsetY: 6, blur: 18, spread: 0, color: 'rgba(139, 47, 48, 0.10)' },
     ...(o.anim ?? MEDIA_UP),
   });
@@ -502,10 +505,10 @@ export function sweetTemplate(): TemplateDoc {
 
     // ═══════════ Lời mời ═══════════
     photo('sec-intro', {
-      top: 720, left: 2, width: 495, height: 697, img: SEED_KEYS.cover, slot: 'cover', blur: 5,
+      top: 720, left: 2, width: 495, height: 697, img: SEED_KEYS.cover, slot: 'cover',
     }),
     box('sec-intro', {
-      top: 1049.7, left: 31.9, width: 448.4, height: 346.5, fill: '#ffffff', opacity: 0.55,
+      top: 1040, left: 31.9, width: 448.4, height: 372, fill: '#ffffff', opacity: 0.55, frost: 10,
     }),
     createNode('CountDown', 'sec-intro', {
       top: 1025.9, left: 108.5, width: 310, height: 65,
@@ -516,11 +519,11 @@ export function sweetTemplate(): TemplateDoc {
       ...fx('slide-up', 0.3),
     }),
     text('sec-intro', {
-      top: 1135.3, left: 38.3, width: 442, height: 31,
+      top: 1098, left: 38.3, width: 442, height: 34,
       text: 'INVITATION', font: SYS, size: 31, color: DEEP, spacing: 11,
     }),
     text('sec-intro', {
-      top: 1190, left: 50, width: 400, height: 200,
+      top: 1150, left: 40, width: 420, height: 250,
       text:
         'Gửi đến gia đình và bạn bè thân mến,<br>' +
         'Cảm ơn bạn đã dành thời gian quý báu để cùng chúng mình chung vui ' +
@@ -528,7 +531,7 @@ export function sweetTemplate(): TemplateDoc {
         'đồng hành và ủng hộ của bạn, và thật vinh hạnh khi được chia sẻ ' +
         'niềm hạnh phúc của chúng mình cùng bạn.<br>' +
         'Trân trọng kính mời bạn đến dự lễ cưới của chúng mình',
-      font: SANS, size: 18, color: DEEP, lineHeight: '1.45',
+      font: SCRIPT, size: 21, weight: '700', color: DEEP, lineHeight: '1.4',
     }),
 
     // ═══════════ Lễ thành hôn ═══════════
@@ -789,10 +792,10 @@ export function sweetTemplate(): TemplateDoc {
 
     // ═══════════ Xác nhận tham dự ═══════════
     photo('sec-rsvp', {
-      top: 6101, left: 0, width: 498.7, height: 911, img: SEED_KEYS.cover, slot: 'cover', blur: 5, z: 49,
+      top: 6101, left: 0, width: 498.7, height: 911, img: SEED_KEYS.cover, slot: 'cover', z: 49,
     }),
     box('sec-rsvp', {
-      top: 6132, left: 37.5, width: 417.8, height: 685.3, fill: '#ffffff', opacity: 0.43, z: 50,
+      top: 6132, left: 37.5, width: 417.8, height: 685.3, fill: '#ffffff', opacity: 0.43, frost: 10, z: 50,
     }),
     text('sec-rsvp', {
       top: 6103.3, left: 14.9, width: 482.6, height: 61,

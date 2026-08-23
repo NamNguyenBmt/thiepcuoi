@@ -70,6 +70,14 @@ export interface BaseProps extends Rect {
   borderColor: string;
   hasShadow: boolean;
   boxShadow: BoxShadow;
+  /**
+   * Làm mờ những gì nằm *sau* node, tính bằng px — hiệu ứng kính mờ.
+   *
+   * Khác `PhotoProps.blur` (làm mờ chính tấm ảnh): cái này để một tấm nền
+   * trong suốt đặt lên ảnh vẫn cho thấy ảnh, nhưng nhoè đi đủ để chữ trên nền
+   * đọc được. Ảnh gốc ở chỗ khác trong thiệp vẫn nét.
+   */
+  backdropBlur: number;
   zIndex: number;
   locked: boolean;   // khoá trong editor: không chọn/kéo được
   hidden: boolean;
