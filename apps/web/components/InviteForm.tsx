@@ -187,6 +187,17 @@ export function InviteForm({ inviteId, initialSlug, initialPublished, initialDat
       )}
 
       <Section title="Mừng cưới">
+        {/*
+          Nút "Gửi quà" trên thiệp mở tài khoản theo VỊ TRÍ trong danh sách này,
+          không theo tên hiển thị — mẫu không có cách nào biết "Cô dâu" là ai
+          nếu người nhập gõ khác đi. Nói rõ ở đây, vì xếp nhầm thứ tự thì khách
+          bấm nút bên cô dâu lại ra tài khoản chú rể, mà nhìn thiệp không ai
+          phát hiện ra.
+        */}
+        <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 12px', lineHeight: 1.5 }}>
+          Thứ tự quan trọng: <strong>tài khoản đầu tiên là chú rể</strong>, thứ hai là cô dâu.
+          Hai nút “Gửi quà” trên thiệp mở đúng theo thứ tự này.
+        </p>
         {data.accounts.map((acc, i) => (
           <div key={acc.id} style={{ borderTop: i ? '1px solid #eef0f2' : 'none', paddingTop: i ? 12 : 0 }}>
             <Field label="Hiển thị là">

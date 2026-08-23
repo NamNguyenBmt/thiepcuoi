@@ -633,18 +633,27 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
       top: 53.9, left: 10, width: 480, height: 34,
       text: 'Thiệp mời cưới', font: SYS, size: 31, color: BRICK, spacing: 2, upper: true,
     }),
-    // Chú rể đứng trước cô dâu, đúng thứ tự vẫn đọc trên thiệp cưới Việt —
-    // và cũng là thứ tự của khối "Lễ …" ngay bên dưới, nên hai chỗ không đá nhau.
+    /**
+     * Chú rể đứng trước cô dâu, đúng thứ tự vẫn đọc trên thiệp cưới Việt — và
+     * cũng là thứ tự của khối "Lễ …" ngay bên dưới, nên hai chỗ không đá nhau.
+     *
+     * Ô rộng 206 ở cỡ 38 chứ không 177 ở cỡ 43: `shortName` không phải lúc nào
+     * cũng là một tiếng. "Nguyễn Thủy" ở Great Vibes 43px đo được 213px, tràn
+     * ô cũ rồi rơi xuống dòng hai — mà chữ canh giữa theo chiều dọc nên dòng
+     * thừa dâng ngược lên đè vào "THIỆP MỜI CƯỚI". Ở cỡ 38 nó còn 188px, và
+     * ngay cả khi có tên dài hơn phải xuống dòng thì hai dòng vẫn nằm lọt giữa
+     * dòng tiêu đề và dấu song hỷ.
+     */
     text('sec-cover', {
-      top: 114, left: 31, width: 177, height: 54,
-      text: '{{groom.shortName}}', font: FORMAL, size: 43, weight: '400', color: '#000000', anim: IN_RIGHT,
+      top: 114, left: 10, width: 206, height: 54,
+      text: '{{groom.shortName}}', font: FORMAL, size: 38, weight: '400', color: '#000000', anim: IN_RIGHT,
     }),
     text('sec-cover', {
-      top: 114, left: 280.5, width: 177, height: 54,
-      text: '{{bride.shortName}}', font: FORMAL, size: 43, weight: '400', color: '#000000', anim: IN_LEFT,
+      top: 114, left: 284, width: 206, height: 54,
+      text: '{{bride.shortName}}', font: FORMAL, size: 38, weight: '400', color: '#000000', anim: IN_LEFT,
     }),
     text('sec-cover', {
-      top: 118.5, left: 200.5, width: 97.4, height: 54,
+      top: 118.5, left: 216, width: 68, height: 54,
       text: '&amp;', font: FORMAL, size: 42, weight: '400', color: BRICK,
     }),
     decor('sec-cover', {
