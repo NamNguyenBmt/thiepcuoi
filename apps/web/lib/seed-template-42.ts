@@ -709,7 +709,7 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
       // hiện xoá mất (xem animation.ts). Có alpha thì `frost` mới thấy tác
       // dụng — làm nhoè bao nhiêu cũng vô nghĩa sau một lớp trắng đặc.
       top: 1040, left: 31.9, width: 448.4, height: 372,
-      fill: 'rgba(255, 255, 255, 0.20)', frost: 26,
+      fill: 'rgba(255, 255, 255, 0.10)', frost: 26,
     }),
     createNode('CountDown', 'sec-intro', {
       top: 1025.9, left: 108.5, width: 310, height: 65,
