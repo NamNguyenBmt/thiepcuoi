@@ -69,9 +69,18 @@ export function PhotoNode({ node }: NodeProps<'Photo'>) {
     : {};
 
   if (!src) {
+    /**
+     * Trang thiệp thật: không ảnh thì không vẽ gì, kể cả khung.
+     *
+     * Trả về một NodeShell rỗng thì nền, viền và bo góc của node vẫn hiện —
+     * và một ô trắng trơ trọi giữa thiệp trông y như lỗi hiển thị. Nhờ vậy
+     * mẫu được phép chừa sẵn chỗ cho ảnh tuỳ chọn (mã QR ngân hàng chẳng hạn):
+     * thiệp nào có thì hiện, không có thì chỗ đó biến mất.
+     */
+    if (mode !== 'editor') return null;
     return (
       <NodeShell id={node.id} p={p} flipX={p.flipX} flipY={p.flipY} innerStyle={inner}>
-        {mode === 'editor' ? <EmptySlot label="Chưa có ảnh" /> : null}
+        <EmptySlot label="Chưa có ảnh" />
       </NodeShell>
     );
   }

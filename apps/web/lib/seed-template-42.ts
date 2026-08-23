@@ -194,6 +194,9 @@ interface PhotoOpts {
   img: string;
   slot?: string;
   mask?: string;
+  /** Nền và lề trắng quanh ảnh — biến mất cùng ảnh khi thiệp không có ảnh đó */
+  bg?: string;
+  pad?: number;
   z?: number;
   anim?: ReturnType<typeof fx>;
 }
@@ -206,6 +209,8 @@ function photo(section: string, o: PhotoOpts) {
     maskShapeImg: o.mask ?? null,
     objectFit: 'cover',
     isReplaceable: true,
+    backgroundColor: o.bg ?? 'transparent',
+    padding: [o.pad ?? 0, o.pad ?? 0, o.pad ?? 0, o.pad ?? 0],
     zIndex: o.z ?? 0,
     ...(o.anim ?? MEDIA_UP),
   });
@@ -260,7 +265,7 @@ function giftCard(
   section: string,
   top: number,
   side: 'left' | 'right',
-  opts: { role: string; nameToken: string; accountToken: string; photoKey: string; photoSlot: string; qrKey: string; qrSlot: string; z: number },
+  opts: { role: string; nameToken: string; accountToken: string; photoKey: string; photoSlot: string; qrSlot: string; z: number },
 ) {
   const { z } = opts;
   const ringLeft = side === 'left' ? 24.4 : 318.1;
@@ -280,10 +285,13 @@ function giftCard(
       top: top + 5.1, left: cardLeft, width: 278, height: 150,
       fill: '#e0e0e0', opacity: 0.48, radius: 30, shadow: true, z: z + 2, anim: STILL,
     }),
-    box(section, { top: top + 18.7, left: qrLeft, width: 102.3, height: 102.3, fill: '#ffffff', z: z + 6, anim: STILL }),
+    // QR để trống, chỉ hiện khi thiệp thật sự có ảnh QR. Gắn sẵn QR mẫu vào đây
+    // thì một tấm thiệp thật chưa nhập tài khoản sẽ trưng ra mã QR giả cho khách
+    // quét. Nền trắng nằm trên chính node ảnh, không phải node riêng — node riêng
+    // sẽ ở lại thành một ô trắng rỗng khi không có QR.
     photo(section, {
-      top: top + 25.3, left: qrLeft + 3.3, width: 95.6, height: 95.6,
-      img: opts.qrKey, slot: opts.qrSlot, z: z + 16, anim: STILL,
+      top: top + 18.7, left: qrLeft, width: 102.3, height: 102.3,
+      img: '', slot: opts.qrSlot, bg: '#ffffff', pad: 3.3, z: z + 16, anim: STILL,
     }),
     text(section, {
       top: top + 25.3, left: textMid - 75, width: 150, height: 24,
@@ -763,17 +771,17 @@ export function sweetTemplate(): TemplateDoc {
     ...giftCard('sec-gift', 7616.8, 'left', {
       role: 'Cô dâu',
       nameToken: '{{bride.fullName}}',
-      accountToken: '{{accounts.1.bank}} : {{accounts.1.accountNumber}}',
+      accountToken: '{{accounts.1.bank}} {{accounts.1.accountNumber}}',
       photoKey: SEED_KEYS.bride, photoSlot: 'bride',
-      qrKey: SEED_KEYS.qrBride, qrSlot: 'qrBride',
+      qrSlot: 'qrBride',
       z: 62,
     }),
     ...giftCard('sec-gift', 7857.2, 'right', {
       role: 'Chú rể',
       nameToken: '{{groom.fullName}}',
-      accountToken: '{{accounts.0.bank}} : {{accounts.0.accountNumber}}',
+      accountToken: '{{accounts.0.bank}} {{accounts.0.accountNumber}}',
       photoKey: SEED_KEYS.groom, photoSlot: 'groom',
-      qrKey: SEED_KEYS.qrGroom, qrSlot: 'qrGroom',
+      qrSlot: 'qrGroom',
       z: 63,
     }),
 

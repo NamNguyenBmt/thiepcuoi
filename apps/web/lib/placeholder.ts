@@ -58,6 +58,9 @@ export function placeholderInviteData(): InviteData {
       couple: SEED_KEYS.couple,
       groom: SEED_KEYS.groom,
       bride: SEED_KEYS.bride,
+      // Trang xem thử mẫu cần đủ hình; thiệp thật chưa có QR thì chỗ đó bỏ trống
+      qrGroom: SEED_KEYS.qrGroom,
+      qrBride: SEED_KEYS.qrBride,
     },
     accounts: [
       {
