@@ -508,7 +508,12 @@ export function sweetTemplate(): TemplateDoc {
       top: 720, left: 2, width: 495, height: 697, img: SEED_KEYS.cover, slot: 'cover',
     }),
     box('sec-intro', {
-      top: 1040, left: 31.9, width: 448.4, height: 372, fill: '#ffffff', opacity: 0.55, frost: 10,
+      // Alpha nằm trong chính màu nền, không mượn `opacity` của node: opacity
+      // làm mờ cả tấm nền lẫn mọi thứ vẽ trong nó, và từng bị hiệu ứng xuất
+      // hiện xoá mất (xem animation.ts). Có alpha thì `frost` mới thấy tác
+      // dụng — làm nhoè bao nhiêu cũng vô nghĩa sau một lớp trắng đặc.
+      top: 1040, left: 31.9, width: 448.4, height: 372,
+      fill: 'rgba(255, 255, 255, 0.34)', frost: 16,
     }),
     createNode('CountDown', 'sec-intro', {
       top: 1025.9, left: 108.5, width: 310, height: 65,
@@ -795,7 +800,10 @@ export function sweetTemplate(): TemplateDoc {
       top: 6101, left: 0, width: 498.7, height: 911, img: SEED_KEYS.cover, slot: 'cover', z: 49,
     }),
     box('sec-rsvp', {
-      top: 6132, left: 37.5, width: 417.8, height: 685.3, fill: '#ffffff', opacity: 0.43, frost: 10, z: 50,
+      // Cùng lý do với tấm nền phần Lời mời. Để đục hơn một chút vì tấm này
+      // đỡ cả cái form — chữ trong ô nhập phải đọc được, không chỉ ngắm.
+      top: 6132, left: 37.5, width: 417.8, height: 685.3,
+      fill: 'rgba(255, 255, 255, 0.5)', frost: 16, z: 50,
     }),
     text('sec-rsvp', {
       top: 6103.3, left: 14.9, width: 482.6, height: 61,

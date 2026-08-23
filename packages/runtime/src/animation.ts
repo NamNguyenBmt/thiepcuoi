@@ -66,22 +66,42 @@ export function useReveal(transition: Transition, baseTransform?: string): Revea
 
   if (!enabled) return { ref, style: {} };
 
+  return { ref, style: entranceStyle(transition, revealed, baseTransform) };
+}
+
+/**
+ * Style của hiệu ứng vào, tách khỏi hook để test được.
+ *
+ * Lúc đã hiện thì **không được nhắc tới** `opacity`, `filter`, `willChange`.
+ * `NodeShell` ghép `{...baseStyle(p), ...reveal.style}`; trong JS, một khoá mang
+ * giá trị `undefined` vẫn là khoá và vẫn đè lên giá trị phía trước. Viết
+ * `opacity: revealed ? undefined : 0` là xoá sạch `opacity` riêng của node ngay
+ * khi nó hiện ra — tấm nền kính mờ khai báo `opacity: 0.55` hoá trắng đặc, che
+ * mất ảnh phía sau. Nên chỉ gán khi thật sự cần.
+ */
+export function entranceStyle(
+  transition: Transition,
+  revealed: boolean,
+  baseTransform?: string,
+): CSSProperties {
   const hidden = HIDDEN_TRANSFORM[transition.effectType];
   const enter = [hidden !== 'none' ? hidden : '', baseTransform ?? ''].filter(Boolean).join(' ');
 
-  return {
-    ref,
-    style: {
-      opacity: revealed ? undefined : 0,
-      filter: !revealed && transition.effectType === 'blur-in' ? 'blur(12px)' : undefined,
-      transform: revealed ? baseTransform : enter || undefined,
-      transitionProperty: 'opacity, transform, filter',
-      transitionDuration: `${transition.effectDuration}s`,
-      transitionDelay: `${transition.effectDelay}s`,
-      transitionTimingFunction: transition.effectEasing,
-      willChange: revealed ? undefined : 'opacity, transform',
-    },
+  const style: CSSProperties = {
+    transform: revealed ? baseTransform : enter || undefined,
+    transitionProperty: 'opacity, transform, filter',
+    transitionDuration: `${transition.effectDuration}s`,
+    transitionDelay: `${transition.effectDelay}s`,
+    transitionTimingFunction: transition.effectEasing,
   };
+
+  if (!revealed) {
+    style.opacity = 0;
+    style.willChange = 'opacity, transform';
+    if (transition.effectType === 'blur-in') style.filter = 'blur(12px)';
+  }
+
+  return style;
 }
 
 export function continuousStyle(anim: ContinuousAnimation, mode: 'render' | 'editor'): CSSProperties {

@@ -155,5 +155,32 @@ const ssrAll = renderToStaticMarkup(
 );
 check('eagerUntil=Infinity render het', ssrAll.includes('NOI-DUNG-CUOI'));
 
+console.log('7. hiệu ứng vào không được nuốt opacity của node');
+const { entranceStyle } = await import('./animation');
+const { baseStyle } = await import('./style');
+const { baseProps } = await import('@thiepcuoi/schema');
+
+const chuyenDong = {
+  effectEnabled: true, effectType: 'slide-up' as const,
+  effectDuration: 0.6, effectDelay: 0, effectEasing: 'ease-out' as const,
+};
+
+const luucHien = entranceStyle(chuyenDong, true);
+check('đã hiện thì không nhắc tới opacity', !('opacity' in luucHien), Object.keys(luucHien));
+check('đã hiện thì không nhắc tới filter', !('filter' in luucHien), Object.keys(luucHien));
+check('đã hiện thì không nhắc tới willChange', !('willChange' in luucHien), Object.keys(luucHien));
+
+const luucAn = entranceStyle(chuyenDong, false);
+check('chưa hiện thì opacity = 0', luucAn.opacity === 0, luucAn.opacity);
+
+/**
+ * Đây mới là lỗi thật: `NodeShell` ghép hai style, mà một khoá `undefined` vẫn
+ * đè lên giá trị trước đó. Tấm nền kính mờ 55% từng hoá trắng đặc vì vậy.
+ */
+const kinhMo = baseProps({ opacity: 0.34, backdropBlur: 16 });
+const ghep = { ...baseStyle(kinhMo), ...entranceStyle(chuyenDong, true) };
+check('ghép xong node vẫn giữ opacity riêng', ghep.opacity === 0.34, ghep.opacity);
+check('ghép xong vẫn còn backdrop-filter', ghep.backdropFilter === 'blur(16px)', ghep.backdropFilter);
+
 console.log(failed === 0 ? '\nPASS' : `\n${failed} FAILED`);
 process.exit(failed === 0 ? 0 : 1);
