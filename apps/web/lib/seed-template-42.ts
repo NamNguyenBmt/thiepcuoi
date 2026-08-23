@@ -394,8 +394,10 @@ function giftCard(
       text: opts.role, font: FORMAL, size: 24, weight: '400', color: INK, z: z + 3, anim: STILL,
     }),
     text(section, {
+      // 21px chứ không 24: cột chữ chỉ rộng 170px (thẻ 278 trừ chỗ mã QR), mà
+      // họ tên đầy đủ tiếng Việt ở nét thư pháp 24px là vừa đủ tràn sang dòng hai.
       top: top + 55, left: textMid - 85, width: 170, height: 32,
-      text: opts.nameToken, font: FORMAL, size: 24, weight: '400', color: INK, z: z + 4, anim: STILL,
+      text: opts.nameToken, font: FORMAL, size: 21, weight: '400', color: INK, z: z + 4, anim: STILL,
     }),
     // Số tài khoản giữ font sans: đây là dãy số người ta phải đọc để chuyển
     // khoản, chữ số viết tay là mời nhập nhầm một con số.
