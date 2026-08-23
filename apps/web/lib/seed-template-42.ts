@@ -341,8 +341,9 @@ function timelineRow(section: string, top: number, img: string, size: number, la
     decor(section, { top: top + 4, left: 171.1 + (41 - size) / 2, width: size, height: size, img, z: z + 1 }),
     decor(section, { top: top + 13, left: 220, width: 22.5, height: 22.5, img: SEED_KEYS.heartRose, z, anim: MEDIA_UP }),
     text(section, {
-      top: top + 13, left: 251, width: 240, height: 30,
-      text: label, font: SERIF, size: 15, color: '#000000', align: 'left', z: z + 2,
+      top: top + 6, left: 251, width: 240, height: 46,
+      text: label, font: SERIF, size: 15, color: '#000000', align: 'left',
+      lineHeight: '1.45', z: z + 2,
     }),
   ];
 }
@@ -743,7 +744,9 @@ export function sweetTemplate(): TemplateDoc {
     createNode('Calendar', 'sec-date', {
       top: 5509.2, left: 176.9, width: 311.1, height: 278.5, zIndex: 40,
       month: '{{events.1.datetime}}',
-      markedDates: ['{{events.1.datetime}}'],
+      // Đánh dấu cả hai buổi. Ngày nào rơi ngoài tháng đang vẽ thì `CalendarNode`
+      // tự lọc bỏ, nên hai buổi khác tháng cũng không làm vỡ lưới.
+      markedDates: ['{{events.0.datetime}}', '{{events.1.datetime}}'],
       markerIcon: SEED_KEYS.heart,
       themeColor: ROSE, color: '#000000',
       fontFamily: SYS, fontSize: 14,
@@ -755,12 +758,12 @@ export function sweetTemplate(): TemplateDoc {
     box('sec-timeline', {
       top: 5869.7, left: 232, width: 1.5, height: 193, fill: RULE, anim: MEDIA_UP,
     }),
-    ...timelineRow('sec-timeline', 5869.7, SEED_KEYS.champagne, 38.3,
-      '{{events.0.time}}&nbsp; : Khai tiệc — Lễ vu quy', 42),
+    ...timelineRow('sec-timeline', 5866, SEED_KEYS.champagne, 38.3,
+      '{{events.0.dayMonth}} &nbsp;·&nbsp; {{events.0.time}}<br>Khai tiệc — Lễ vu quy', 42),
     ...timelineRow('sec-timeline', 5936.7, SEED_KEYS.car, 41,
-      '{{events.2.time}}&nbsp; : Lễ rước dâu', 45),
-    ...timelineRow('sec-timeline', 6013.4, SEED_KEYS.handsHeart, 31.8,
-      '{{events.1.time}}&nbsp; : Khai tiệc — Lễ thành hôn', 48),
+      '{{events.2.dayMonth}} &nbsp;·&nbsp; {{events.2.time}}<br>Lễ rước dâu', 45),
+    ...timelineRow('sec-timeline', 6010, SEED_KEYS.handsHeart, 31.8,
+      '{{events.1.dayMonth}} &nbsp;·&nbsp; {{events.1.time}}<br>Khai tiệc — Lễ thành hôn', 48),
 
     // ═══════════ Xác nhận tham dự ═══════════
     photo('sec-rsvp', {

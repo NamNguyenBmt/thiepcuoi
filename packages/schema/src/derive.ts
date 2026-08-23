@@ -62,6 +62,15 @@ function partsOf(iso: string): Parts | null {
 export interface DerivedEventFields {
   /** "14 . 03 . 2027" */
   dateText: string;
+  /**
+   * "14/03" — bản gọn cho những chỗ chật.
+   *
+   * Một tấm thiệp có nhiều buổi thì danh sách trình tự sẽ có hai dòng cùng giờ
+   * ("11 : 00" hai lần), và khách không biết dòng nào của ngày nào. Ghép sẵn
+   * ngày/tháng ở đây thay vì bắt mỗi mẫu tự nối `day` với `monthText` —
+   * "27/Tháng 9" là thứ sẽ ra nếu làm vậy.
+   */
+  dayMonth: string;
   /** "Chủ nhật - 14 : 00" */
   weekdayTime: string;
   /** "Chủ nhật" */
@@ -79,12 +88,13 @@ export interface DerivedEventFields {
 function deriveEvent(datetime: string): DerivedEventFields {
   const p = partsOf(datetime);
   if (!p) {
-    return { dateText: '', weekdayTime: '', weekday: '', time: '', day: '', monthText: '', year: '' };
+    return { dateText: '', dayMonth: '', weekdayTime: '', weekday: '', time: '', day: '', monthText: '', year: '' };
   }
   const weekday = WEEKDAYS[p.weekday] ?? '';
   const time = `${p.hour} : ${p.minute}`;
   return {
     dateText: `${p.day} . ${p.month} . ${p.year}`,
+    dayMonth: `${p.day}/${p.month}`,
     weekdayTime: `${weekday} - ${time}`,
     weekday,
     time,
