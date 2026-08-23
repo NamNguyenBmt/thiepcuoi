@@ -443,6 +443,11 @@ function timelineRow(section: string, top: number, img: string, size: number, la
   ];
 }
 
+/** Thẻ mừng cưới: bề ngang, chiều cao, bề ngang nút — ôm sát bốn dòng bên trong */
+const CARD_W = 278;
+const CARD_H = 168;
+const BTN_W = 180;
+
 /**
  * Một thẻ chuyển khoản: ảnh tròn trong vòng nét đứt, khối nền bo góc, tên và
  * số tài khoản, mã QR. `side` quyết định ảnh nằm trái hay phải.
@@ -456,23 +461,51 @@ function giftCard(
   const { z } = opts;
   const ringLeft = side === 'left' ? 24.4 : 318.1;
   const cardLeft = side === 'left' ? 201 : 21.6;
-  const qrLeft = side === 'left' ? 358.5 : 33.9;
-  // Cột chữ nằm gọn giữa mép thẻ và mã QR — không chừa chỗ thì tên dài đè lên QR
-  const textMid = side === 'left' ? 278 : 222;
+
+  /**
+   * Bốn dòng xếp thành MỘT cột giữa thẻ, không còn nhét nút sang cạnh tên.
+   *
+   * Bản trước để nút ở đúng chỗ tấm QR cũ, tức cạnh tên: cột chữ chỉ còn 170px
+   * và mép phải của nó cách nút đúng 4px, nên "Nguyễn Hoài Nam" vừa vặn chạm
+   * nút. Nhãn dài hơn ("Gửi quà mừng cưới" đo 122px ở cỡ 22, so với 55px của
+   * "Gửi quà") thì cách xếp cạnh nhau hết đường. Xếp dọc thì tên và nút đều
+   * được trọn bề ngang thẻ, và thẻ ôm sát nội dung thay vì chừa một mảng trống.
+   */
+  const mid = cardLeft + CARD_W / 2;
+  const col = (w: number) => mid - w / 2;
 
   return [
-    decor(section, { top, left: ringLeft, width: 150, height: 150, img: SEED_KEYS.dashedRing, z, anim: STILL }),
+    decor(section, {
+      top: top + 13, left: ringLeft, width: 150, height: 150,
+      img: SEED_KEYS.dashedRing, z, anim: STILL,
+    }),
     // Ảnh nhỏ hơn vòng 10px mỗi bên: vòng phải hở ra mới nhìn ra là nét đứt
     photo(section, {
-      top: top + 10, left: ringLeft + 10, width: 130, height: 130,
+      top: top + 23, left: ringLeft + 10, width: 130, height: 130,
       img: opts.photoKey, slot: opts.photoSlot, mask: SEED_KEYS.circleMask, z: z + 1, anim: STILL,
     }),
     box(section, {
-      top: top + 5.1, left: cardLeft, width: 278, height: 150,
+      top: top + 4, left: cardLeft, width: CARD_W, height: CARD_H,
       fill: '#e0e0e0', opacity: 0.48, radius: 30, shadow: true, z: z + 2, anim: STILL,
     }),
+    text(section, {
+      top: top + 18, left: col(200), width: 200, height: 34,
+      text: opts.role, font: FORMAL, size: 28, weight: '400', color: INK, z: z + 3, anim: STILL,
+    }),
+    text(section, {
+      // 21px chứ không 24: họ tên đầy đủ tiếng Việt ở nét thư pháp 24px vừa đủ
+      // tràn sang dòng hai, ngay cả khi được trọn bề ngang thẻ.
+      top: top + 54, left: col(240), width: 240, height: 30,
+      text: opts.nameToken, font: FORMAL, size: 21, weight: '400', color: INK, z: z + 4, anim: STILL,
+    }),
+    // Số tài khoản giữ font sans: đây là dãy số người ta phải đọc để chuyển
+    // khoản, chữ số viết tay là mời nhập nhầm một con số.
+    text(section, {
+      top: top + 86, left: col(240), width: 240, height: 20,
+      text: opts.accountToken, size: 14, color: INK, z: z + 5, anim: STILL,
+    }),
     /**
-     * Nút "Gửi quà" thay cho tấm QR dán sẵn trên thẻ.
+     * Nút mở lớp phủ chuyển khoản, thay cho tấm QR dán sẵn trên thẻ.
      *
      * Bản trước in thẳng mã QR lên thẻ, cỡ 102px. Ở cỡ đó máy quét của khách
      * phải rà rất gần mới bắt được, mà chỗ đó lại là chỗ chật nhất của thẻ. Bấm
@@ -484,11 +517,11 @@ function giftCard(
      * mất: khách vừa bấm mà nút bay đi thì tưởng thiệp hỏng.
      */
     createNode('GiftQr', section, {
-      top: top + 55, left: qrLeft, width: 102.3, height: 44, zIndex: z + 16,
-      label: 'Gửi quà',
-      fontFamily: FORMAL, fontSize: 24, color: '#ffffff',
+      top: top + 112, left: col(BTN_W), width: BTN_W, height: 42, zIndex: z + 16,
+      label: 'Gửi quà mừng cưới',
+      fontFamily: FORMAL, fontSize: 22, color: '#ffffff',
       backgroundColor: ROSE,
-      borderRadius: [22, 22, 22, 22],
+      borderRadius: [21, 21, 21, 21],
       modalTitle: `Gửi quà mừng ${opts.role.toLowerCase()}`,
       accountIndex: opts.accountIndex,
       hasShadow: true,
@@ -497,22 +530,6 @@ function giftCard(
       // đứt, thêm một thứ động đậy nữa là chỗ đó thành ồn.
       continuousAnimation: { type: 'none', duration: 2, delay: 0 },
       ...STILL,
-    }),
-    text(section, {
-      top: top + 22, left: textMid - 75, width: 150, height: 30,
-      text: opts.role, font: FORMAL, size: 28, weight: '400', color: INK, z: z + 3, anim: STILL,
-    }),
-    text(section, {
-      // 21px chứ không 24: cột chữ chỉ rộng 170px (thẻ 278 trừ chỗ mã QR), mà
-      // họ tên đầy đủ tiếng Việt ở nét thư pháp 24px là vừa đủ tràn sang dòng hai.
-      top: top + 55, left: textMid - 85, width: 170, height: 32,
-      text: opts.nameToken, font: FORMAL, size: 21, weight: '400', color: INK, z: z + 4, anim: STILL,
-    }),
-    // Số tài khoản giữ font sans: đây là dãy số người ta phải đọc để chuyển
-    // khoản, chữ số viết tay là mời nhập nhầm một con số.
-    text(section, {
-      top: top + 94, left: textMid - 80, width: 160, height: 20,
-      text: opts.accountToken, size: 14, color: INK, z: z + 5, anim: STILL,
     }),
   ];
 }
@@ -692,7 +709,7 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
       // hiện xoá mất (xem animation.ts). Có alpha thì `frost` mới thấy tác
       // dụng — làm nhoè bao nhiêu cũng vô nghĩa sau một lớp trắng đặc.
       top: 1040, left: 31.9, width: 448.4, height: 372,
-      fill: 'rgba(255, 255, 255, 0.34)', frost: 26,
+      fill: 'rgba(255, 255, 255, 0.20)', frost: 26,
     }),
     createNode('CountDown', 'sec-intro', {
       top: 1025.9, left: 108.5, width: 310, height: 65,
