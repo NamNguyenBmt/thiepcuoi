@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { getTemplateBySlug } from '@/lib/db';
 import { InviteView } from '@/components/InviteView';
 import { ASSET_BASE, EDITOR_URL } from '@/lib/config';
-import { placeholderInviteData } from '@/lib/placeholder';
+import { placeholderFor } from '@/lib/placeholder';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,7 +60,7 @@ export default async function TemplatePage({ params }: Params) {
 
       <InviteView
         docPacked={template.docPacked}
-        data={placeholderInviteData()}
+        data={placeholderFor(slug)}
         inviteId={null}
         initialWishes={[]}
         assetBase={ASSET_BASE}

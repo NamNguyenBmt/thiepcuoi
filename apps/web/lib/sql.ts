@@ -137,7 +137,84 @@ async function connect(): Promise<Sql> {
 
   await migrate(sql);
   await seedIfEmpty(sql);
+  await syncBuiltinTemplates(sql);
   return sql;
+}
+
+/**
+ * Nạp những mẫu dựng sẵn còn THIẾU vào một database đã có dữ liệu.
+ *
+ * `seedIfEmpty` chỉ chạy khi bảng `users` còn trống — đúng cho lần dựng đầu,
+ * nhưng nghĩa là mọi mẫu thêm về sau không bao giờ tới được production đang
+ * chạy. Cho tới nay chỗ đó phải lấp bằng tay: cầm `DATABASE_URL` của production
+ * chạy `npm run seed:templates`. Mỗi lần thêm mẫu lại một lần như vậy, và quên
+ * thì deploy xong mẫu vẫn không có. Bước này biến nó thành: đẩy code là xong.
+ *
+ * CHỈ chèn mẫu chưa có, KHÔNG bao giờ ghi đè. Chủ thiệp có thể đã sửa một mẫu
+ * dựng sẵn trong editor, và một bước chạy lúc khởi động mà nuốt mất công của họ
+ * là thứ không ai kịp ngăn. Cập nhật mẫu đã có vẫn là việc của
+ * `npm run seed:templates -- --force <slug>`, nơi có người bấm nút chịu trách
+ * nhiệm.
+ *
+ * Giá phải trả trên cold start là đúng một câu `select` khi không thiếu gì —
+ * ảnh mồi chỉ được dựng lại khi thật sự có mẫu phải chèn.
+ */
+async function syncBuiltinTemplates(sql: Sql): Promise<void> {
+  const { builtinTemplates } = await import('./seed');
+  const docs = builtinTemplates();
+
+  const { rows: have } = await sql.query<{ slug: string }>(
+    'select slug from templates where slug = any($1)',
+    [docs.map((d) => d.slug)],
+  );
+  const known = new Set(have.map((r) => r.slug));
+  const missing = docs.filter((d) => !known.has(d.slug));
+  if (missing.length === 0) return;
+
+  /**
+   * Ảnh mồi phải thuộc về một người có thật (`assets.owner_id` tham chiếu
+   * `users` kèm `on delete cascade`). Không có ai thì database này chưa dựng
+   * xong — để lần khởi động sau lo, đừng nửa vời.
+   */
+  const { rows: owners } = await sql.query<{ id: string }>(
+    `select id from users order by (role = 'admin') desc, created_at asc limit 1`,
+  );
+  const ownerId = owners[0]?.id;
+  if (!ownerId) return;
+
+  const [{ packDoc }, { buildSeedAssets }] = await Promise.all([
+    import('@thiepcuoi/schema'),
+    import('./seed-assets'),
+  ]);
+
+  // Mẫu mới có thể trỏ tới hoạ tiết mà database này chưa từng thấy. Ghi đè lên
+  // chính nó là vô hại: khoá là uuid cố định và nội dung tất định.
+  const assets = await buildSeedAssets(ownerId);
+  const now = new Date().toISOString();
+
+  await sql.transaction(async (tx) => {
+    for (const a of assets) {
+      await tx.query(
+        `insert into assets (id, key, owner_id, mime, width, height, bytes, original_name, created_at)
+         values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+         on conflict (id) do nothing`,
+        [a.row.id, a.row.key, ownerId, a.row.mime, a.row.width, a.row.height, a.row.bytes,
+         a.row.originalName, now],
+      );
+    }
+    for (const doc of missing) {
+      // `on conflict do nothing` không nêu tên ràng buộc, để bắt cả `slug` lẫn
+      // `id`: nhiều instance cùng khởi động thì cả hai đều thấy thiếu một mẫu.
+      await tx.query(
+        `insert into templates (id, slug, name, owner_id, doc_packed, thumbnail, usage_count)
+         values ($1, $2, $3, $4, $5, null, 0)
+         on conflict do nothing`,
+        [doc.id, doc.slug, doc.name, ownerId, packDoc(doc)],
+      );
+    }
+  });
+
+  console.warn(`[templates] đã nạp mẫu dựng sẵn còn thiếu: ${missing.map((d) => d.slug).join(', ')}`);
 }
 
 /**

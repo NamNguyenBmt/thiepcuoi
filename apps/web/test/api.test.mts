@@ -49,14 +49,29 @@ function check(name: string, cond: boolean, extra?: unknown) {
 
 console.log('1. seed');
 const templates = await listTemplates();
-// "Cơ bản" (ví dụ tối giản) + "Trọn vẹn" + "Ngọt ngào" (mẫu mà thiệp mồi dùng)
-check('có 3 template mồi', templates.length === 3, templates.length);
+// "Cơ bản" + "Trọn vẹn" + ba biến thể của "Ngọt ngào" (gộp / vu quy / thành hôn)
+check('có 5 template mồi', templates.length === 5, templates.length);
 const full = templates.find((t) => t.slug === 'tron-ven');
 check('có mẫu Trọn vẹn', !!full, templates.map((t) => t.slug));
 const sweet = templates.find((t) => t.slug === 'ngot-ngao');
 check('có mẫu Ngọt ngào', !!sweet, templates.map((t) => t.slug));
+check(
+  'có đủ hai biến thể tách thiệp',
+  ['ngot-ngao-vu-quy', 'ngot-ngao-thanh-hon'].every((slug) => templates.some((t) => t.slug === slug)),
+  templates.map((t) => t.slug),
+);
 const invite = await getInviteBySlug('quan-lan');
 check('có thiệp mẫu', invite?.data.groom.shortName === 'Quân', invite?.slug);
+
+// Tách thiệp: hai tấm cùng một đám cưới, mỗi tấm một mẫu riêng
+const vuQuy = await getInviteBySlug('quan-lan-vu-quy');
+const thanhHon = await getInviteBySlug('quan-lan-thanh-hon');
+check('có thiệp vu quy', vuQuy?.templateId === 'tpl-ngot-ngao-vu-quy', vuQuy?.templateId);
+check('có thiệp thành hôn', thanhHon?.templateId === 'tpl-ngot-ngao-thanh-hon', thanhHon?.templateId);
+check(
+  'hai thiệp tách dùng chung một bộ sự kiện',
+  JSON.stringify(vuQuy?.data.events) === JSON.stringify(thanhHon?.data.events),
+);
 
 console.log('2. doc nén/giải nén được và hợp lệ');
 const doc = unpackDoc(full!.docPacked);

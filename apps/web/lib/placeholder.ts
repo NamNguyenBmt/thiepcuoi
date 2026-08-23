@@ -8,12 +8,53 @@
  *
  * Phải đủ 4 sự kiện: mẫu "Trọn vẹn" trỏ tới `events.0` … `events.3`, thiếu cái
  * nào là chỗ đó trống trơn khi xem thử.
+ *
+ * `events` là một MẢNG, nên `events.1` nghĩa là gì hoàn toàn do mẫu quy ước —
+ * và hai họ mẫu ở đây quy ước khác nhau ("Trọn vẹn" đánh số theo tiệc từng nhà,
+ * "Ngọt ngào" đánh số theo buổi lễ và có thêm lễ rước dâu). Một bộ dữ liệu giả
+ * dùng chung sẽ hiện đúng ở mẫu này và sai nhãn ở mẫu kia, nên chọn bộ theo
+ * slug thay vì cố nhồi cả hai cách đánh số vào một mảng.
  */
 
 import type { InviteData } from '@thiepcuoi/schema';
 import { SEED_KEYS } from './seed-assets';
 
 const DEMO_DAY = '2027-03-14T07:00:00.000Z';
+
+/** Bộ dữ liệu giả hợp với mẫu đang xem thử */
+export function placeholderFor(templateSlug: string): InviteData {
+  return templateSlug.startsWith('ngot-ngao') ? sweetPlaceholderData() : placeholderInviteData();
+}
+
+/**
+ * Thứ tự sự kiện của mẫu "Ngọt ngào":
+ *   0 = tiệc vu quy (nhà gái), 1 = tiệc thành hôn (nhà trai), 2 = lễ rước dâu
+ */
+function sweetPlaceholderData(): InviteData {
+  return {
+    ...placeholderInviteData(),
+    events: [
+      {
+        id: 'ev-vu-quy', title: 'Lễ vu quy', datetime: '2027-03-13T04:00:00.000Z',
+        lunarText: 'Tức ngày 06 tháng 02 năm Đinh Mùi',
+        venue: 'Nhà hàng Sen Vàng', address: '45 Đường MNO, Hà Nội',
+        lat: null, lng: null,
+      },
+      {
+        id: 'ev-thanh-hon', title: 'Lễ thành hôn', datetime: '2027-03-15T04:00:00.000Z',
+        lunarText: 'Tức ngày 08 tháng 02 năm Đinh Mùi',
+        venue: 'Trung tâm tiệc cưới ABC', address: '123 Đường XYZ, Hà Nội',
+        lat: null, lng: null,
+      },
+      {
+        id: 'ev-ruoc-dau', title: 'Lễ rước dâu', datetime: DEMO_DAY,
+        lunarText: 'Tức ngày 07 tháng 02 năm Đinh Mùi',
+        venue: 'Tại tư gia nhà gái', address: 'Hoàn Kiếm - Hà Nội',
+        lat: null, lng: null,
+      },
+    ],
+  };
+}
 
 export function placeholderInviteData(): InviteData {
   return {

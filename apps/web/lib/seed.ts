@@ -1,12 +1,14 @@
 /**
- * Dữ liệu mồi: 2 template + 1 thiệp đã phát hành.
+ * Dữ liệu mồi: 5 template + 3 thiệp đã phát hành.
  *
  * Template dùng token {{...}} và slot ảnh, còn thiệp chỉ mang InviteData — đúng
  * mô hình tách thiết kế khỏi nội dung. Đổi tên cô dâu chú rể chỉ động vào
  * `invites`, template không phải nhân bản.
  *
  * "Cơ bản" giữ lại làm ví dụ tối giản cho người mới dựng mẫu; "Trọn vẹn" là
- * bản đầy đủ các phần của một tấm thiệp thật, và là mẫu mà thiệp mồi dùng.
+ * bản đầy đủ các phần của một tấm thiệp thật. "Ngọt ngào" có ba biến thể —
+ * bản gộp cả hai buổi, bản chỉ vu quy, bản chỉ thành hôn — và hai thiệp mồi
+ * cuối chính là một đám cưới được tách làm hai tấm cho hai họ.
  */
 
 import { createEmptyDoc, createNode, packDoc } from '@thiepcuoi/schema';
@@ -193,12 +195,88 @@ function demoInviteData(): InviteData {
   };
 }
 
+/**
+ * Dữ liệu cho mẫu "Ngọt ngào" — thứ tự sự kiện KHÁC `demoInviteData`.
+ *
+ * Mẫu đó in tiệc riêng của từng nhà và không có lễ rước dâu; mẫu này thì ngược
+ * lại. Hai bộ dữ liệu chứ không một bộ dùng chung, vì `events.0` là một chỉ số
+ * chứ không phải một cái tên — nhét cả hai cách đánh số vào một mảng thì mẫu
+ * nào cũng đọc trúng ô của mẫu kia.
+ *   0 = tiệc vu quy (nhà gái), 1 = tiệc thành hôn (nhà trai), 2 = lễ rước dâu
+ *
+ * Ba mốc trải ba ngày liền nhau, đúng nhịp một đám cưới xa nhà: nhà gái đãi
+ * trước, hôm sau rước dâu, hôm sau nữa nhà trai đãi.
+ */
+function sweetInviteData(): InviteData {
+  return {
+    ...demoInviteData(),
+    events: [
+      {
+        id: 'ev-vu-quy', title: 'Lễ vu quy', datetime: '2027-03-13T04:00:00.000Z',
+        lunarText: 'Tức ngày 06 tháng 02 năm Đinh Mùi',
+        venue: 'Nhà hàng Sen Vàng',
+        address: '25 Nguyễn Văn Linh, Hải Châu, Đà Nẵng',
+        lat: 16.0605, lng: 108.2214,
+      },
+      {
+        id: 'ev-thanh-hon', title: 'Lễ thành hôn', datetime: '2027-03-15T04:00:00.000Z',
+        lunarText: 'Tức ngày 08 tháng 02 năm Đinh Mùi',
+        venue: 'Trung tâm tiệc cưới Mùa Xuân',
+        address: '18 Trần Duy Hưng, Cầu Giấy, Hà Nội',
+        lat: 21.0086, lng: 105.7996,
+      },
+      {
+        id: 'ev-ruoc-dau', title: 'Lễ rước dâu', datetime: WEDDING_DAY,
+        lunarText: 'Tức ngày 07 tháng 02 năm Đinh Mùi',
+        venue: 'Tại tư gia nhà gái',
+        address: 'Thạch Thang - Hải Châu - Đà Nẵng',
+        lat: 16.0748, lng: 108.2211,
+      },
+    ],
+  };
+}
+
+/**
+ * Mọi mẫu dựng sẵn của repo, theo đúng thứ tự nạp.
+ *
+ * Một nguồn duy nhất cho ba chỗ cần biết danh sách này: `seedDatabase` lúc dựng
+ * database mới, `syncBuiltinTemplates` lúc khởi động, và `scripts/seed-templates`
+ * khi muốn ghi đè bản đã có. Thêm mẫu mà quên một chỗ thì mẫu đó không bao giờ
+ * tới được production.
+ */
+export function builtinTemplates(): TemplateDoc[] {
+  return [
+    demoTemplate(),
+    fullTemplate(),
+    sweetTemplate(),
+    sweetTemplate('vu-quy'),
+    sweetTemplate('thanh-hon'),
+  ];
+}
+
 export async function seedDatabase(): Promise<Database> {
-  const basic = demoTemplate();
-  const full = fullTemplate();
-  const sweet = sweetTemplate();
+  const docs = builtinTemplates();
+  const [, full, , sweetVuQuy, sweetThanhHon] = docs;
   const assets = await buildSeedAssets(SEED_USER_ID);
   const now = new Date().toISOString();
+
+  /**
+   * Cùng một đám cưới, hai tấm thiệp: khách nhà gái nhận bản vu quy, khách nhà
+   * trai nhận bản thành hôn. Cùng `sweetInviteData()` — chỉ khác mẫu, nên sửa
+   * một chỗ trong dữ liệu là cả hai tấm đổi theo.
+   */
+  const invites = [
+    // Dữ liệu 4 sự kiện của thiệp này viết theo hợp đồng của mẫu "Trọn vẹn"
+    { id: 'inv-quan-lan', slug: 'quan-lan', templateId: full!.id, data: demoInviteData() },
+    {
+      id: 'inv-quan-lan-vu-quy', slug: 'quan-lan-vu-quy',
+      templateId: sweetVuQuy!.id, data: sweetInviteData(),
+    },
+    {
+      id: 'inv-quan-lan-thanh-hon', slug: 'quan-lan-thanh-hon',
+      templateId: sweetThanhHon!.id, data: sweetInviteData(),
+    },
+  ];
 
   return {
     users: [
@@ -213,26 +291,17 @@ export async function seedDatabase(): Promise<Database> {
     ],
     sessions: [],
     assets: assets.map((a) => ({ ...a.row, createdAt: now })),
-    templates: [basic, full, sweet].map((doc) => ({
+    templates: docs.map((doc) => ({
       id: doc.id,
       slug: doc.slug,
       name: doc.name,
       ownerId: SEED_USER_ID,
       docPacked: packDoc(doc),
       thumbnail: null,
-      usageCount: doc.id === sweet.id ? 1 : 0,
+      usageCount: invites.filter((inv) => inv.templateId === doc.id).length,
       revision: 1,
     })),
-    invites: [
-      {
-        id: 'inv-quan-lan',
-        slug: 'quan-lan',
-        ownerId: SEED_USER_ID,
-        templateId: sweet.id,
-        data: demoInviteData(),
-        publishedAt: now,
-      },
-    ],
+    invites: invites.map((inv) => ({ ...inv, ownerId: SEED_USER_ID, publishedAt: now })),
     rsvps: [],
     wishes: [],
   };

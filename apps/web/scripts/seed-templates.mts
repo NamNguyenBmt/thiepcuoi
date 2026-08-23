@@ -5,6 +5,9 @@
  *   npm run seed:templates -- --force                 # ghi đè mọi mẫu dựng sẵn
  *   npm run seed:templates -- --force ngot-ngao       # ghi đè đúng mẫu nêu tên
  *
+ * Ba biến thể của "Ngọt ngào" là ba slug riêng: `ngot-ngao`, `ngot-ngao-vu-quy`
+ * và `ngot-ngao-thanh-hon`. Nêu tên thì phải nêu đủ slug muốn đụng tới.
+ *
  * Vì sao cần: `seedIfEmpty` trong `lib/sql.ts` chỉ chạy khi bảng `users` còn
  * trống — đúng cho lần dựng đầu, nhưng nghĩa là mọi mẫu thêm về sau không bao
  * giờ tới được database đang chạy. Script này lấp đúng khoảng đó.
@@ -76,7 +79,15 @@ console.log(`Ảnh mồi: ${assets.length} tấm đã ghi vào kho, ${added} hà
 
 // ── Mẫu ──────────────────────────────────────────────────────────────────
 
-for (const doc of [demoTemplate(), fullTemplate(), sweetTemplate()]) {
+const built = [
+  demoTemplate(),
+  fullTemplate(),
+  sweetTemplate(),
+  sweetTemplate('vu-quy'),
+  sweetTemplate('thanh-hon'),
+];
+
+for (const doc of built) {
   if (!wanted(doc.slug)) {
     console.log(`  · bỏ qua "${doc.name}" (${doc.slug}) — không nằm trong danh sách chỉ định`);
     continue;
