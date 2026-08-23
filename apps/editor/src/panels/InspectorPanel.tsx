@@ -212,6 +212,15 @@ export function InspectorPanel() {
         <NumberField label="Viền" value={p.borderSize} onChange={(v) => set({ borderSize: v }, 'border')} />
         <ColorField label="Màu viền" value={p.borderColor} onChange={(v) => set({ borderColor: v }, 'borderColor')} />
         <CheckField label="Đổ bóng" value={p.hasShadow} onChange={(v) => set({ hasShadow: v })} />
+        {/*
+          Kính mờ chỉ thấy được khi nền có alpha (rgba/#rrggbbaa) — nền đặc thì
+          làm nhoè bao nhiêu cũng vô nghĩa, vì có nhìn xuyên qua được đâu.
+        */}
+        <NumberField
+          label="Kính mờ (px)"
+          value={p.backdropBlur}
+          onChange={(v) => set({ backdropBlur: v }, 'backdropBlur')}
+        />
       </div>
 
       <div style={S.group}>
