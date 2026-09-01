@@ -15,12 +15,41 @@ import { getBlobStore } from './blobstore';
  */
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
+/**
+ * Nhạc nền. Chỉ nhận định dạng nén sẵn mà trình duyệt nào cũng phát được —
+ * `<audio>` trên iOS chơi được mp3 và aac/m4a, còn ogg thì Safari chịu.
+ *
+ * Không có nguy cơ kiểu SVG ở đây: đây là dữ liệu âm thanh, trình duyệt không
+ * thực thi gì trong đó. Nhưng vẫn đi qua đúng một cửa `storeUpload` để chịu
+ * chung giới hạn dung lượng và cách đặt tên khoá.
+ */
+const ALLOWED_AUDIO_MIME = new Set([
+  'audio/mpeg',
+  'audio/mp4',
+  'audio/x-m4a',
+  'audio/aac',
+  'audio/ogg',
+  'audio/wav',
+  'audio/x-wav',
+]);
+
 const EXT: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
   'image/gif': 'gif',
+  'audio/mpeg': 'mp3',
+  'audio/mp4': 'm4a',
+  'audio/x-m4a': 'm4a',
+  'audio/aac': 'm4a',
+  'audio/ogg': 'ogg',
+  'audio/wav': 'wav',
+  'audio/x-wav': 'wav',
 };
+
+export function isAudioMime(mime: string): boolean {
+  return ALLOWED_AUDIO_MIME.has(mime);
+}
 
 export const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 
@@ -28,7 +57,7 @@ export const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 const MAX_DIMENSION = 3000;
 
 /** Khoá chỉ được là uuid + đuôi đã biết — chặn "../" và mọi thứ sáng tạo khác */
-const KEY_RE = /^uploads\/[0-9a-f-]{36}\.(jpg|png|webp|gif)$/;
+const KEY_RE = /^uploads\/[0-9a-f-]{36}\.(jpg|png|webp|gif|mp3|m4a|ogg|wav)$/;
 
 export function isValidKey(key: string): boolean {
   return KEY_RE.test(key);
@@ -49,14 +78,29 @@ export interface UploadError {
 }
 
 export async function storeUpload(file: File): Promise<StoredAsset | UploadError> {
-  if (!ALLOWED_MIME.has(file.type)) {
+  const audio = isAudioMime(file.type);
+
+  if (!audio && !ALLOWED_MIME.has(file.type)) {
     return { error: `Định dạng không nhận: ${file.type || 'không rõ'}`, status: 415 };
   }
   if (file.size > MAX_UPLOAD_BYTES) {
-    return { error: `Ảnh nặng quá (tối đa ${MAX_UPLOAD_BYTES / 1024 / 1024} MB)`, status: 413 };
+    return { error: `File nặng quá (tối đa ${MAX_UPLOAD_BYTES / 1024 / 1024} MB)`, status: 413 };
   }
 
   const input = Buffer.from(await file.arrayBuffer());
+
+  /**
+   * Nhạc thì cất nguyên byte: không có gì để cắt/xoay/nén lại như ảnh, mà đưa
+   * qua sharp thì nó ném lỗi "không phải ảnh". `width`/`height` để 0 — bảng
+   * `assets` đòi số, còn âm thanh thì không có kích thước.
+   */
+  if (audio) {
+    const id = crypto.randomUUID();
+    const key = `uploads/${id}.${EXT[file.type]}`;
+    const store = await getBlobStore();
+    await store.put(key, input, file.type);
+    return { id, key, mime: file.type, width: 0, height: 0, bytes: input.length };
+  }
 
   let pipeline = sharp(input, { animated: file.type === 'image/gif' });
   let meta;
@@ -134,6 +178,10 @@ export interface RenderedImage {
 export async function renderAsset(key: string, mime: string, t: Transform): Promise<RenderedImage> {
   const store = await getBlobStore();
   const original = await store.get(key);
+
+  // Nhạc trả nguyên byte. Tham số crop/resize dính vào URL nhạc chỉ có thể do
+  // nhầm lẫn, và đưa file âm thanh qua sharp thì nổ chứ không "bỏ qua cho".
+  if (isAudioMime(mime)) return { body: original, mime };
 
   const noop = !t.crop && !t.resize && (!t.format || t.format === 'auto');
   if (noop || mime === 'image/gif') return { body: original, mime };

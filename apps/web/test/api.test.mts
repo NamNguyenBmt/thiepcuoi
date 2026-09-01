@@ -193,6 +193,42 @@ if (!('error' in ok)) {
   check('khong phong to qua anh goc', (await sharp(bigger.body).metadata()).width === 900);
 }
 
+console.log('8b. kho nhan ca file nhac');
+const { isAudioMime } = await import('../lib/storage');
+
+/** WAV 8-bit mono 0.1s tự dựng — chỉ cần đúng header, không cần nghe hay */
+function wavThu(): Buffer {
+  const soMau = 800;
+  const b = Buffer.alloc(44 + soMau);
+  b.write('RIFF', 0); b.writeUInt32LE(36 + soMau, 4); b.write('WAVE', 8);
+  b.write('fmt ', 12); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20);
+  b.writeUInt16LE(1, 22); b.writeUInt32LE(8000, 24); b.writeUInt32LE(8000, 28);
+  b.writeUInt16LE(1, 32); b.writeUInt16LE(8, 34);
+  b.write('data', 36); b.writeUInt32LE(soMau, 40);
+  for (let i = 0; i < soMau; i++) b[44 + i] = 128 + Math.round(60 * Math.sin(i / 6));
+  return b;
+}
+
+check('nhan dien mime nhac', isAudioMime('audio/mpeg') && isAudioMime('audio/mp4'));
+check('anh khong bi coi la nhac', !isAudioMime('image/png'));
+check('key duoi nhac hop le', isValidKey(`uploads/${crypto.randomUUID()}.mp3`));
+check('key duoi la van bi chan', !isValidKey(`uploads/${crypto.randomUUID()}.exe`));
+
+const wav = wavThu();
+const nhac = await storeUpload(new File([wav], 'nen.wav', { type: 'audio/wav' }));
+check('luu duoc file nhac', !('error' in nhac) && nhac.key.endsWith('.wav'), nhac);
+
+if (!('error' in nhac)) {
+  // Âm thanh không có kích thước; bảng assets vẫn đòi số nên phải là 0, không phải NaN
+  check('nhac khong co kich thuoc', nhac.width === 0 && nhac.height === 0, nhac);
+  check('giu nguyen so byte, khong nen lai', nhac.bytes === wav.length, nhac.bytes);
+
+  // Tham số của ảnh lọt vào URL nhạc thì phải bị bỏ qua, không được đưa qua sharp
+  const phucVu = await renderAsset(nhac.key, nhac.mime, { resize: 300, format: 'webp' });
+  check('phuc vu nhac dung mime', phucVu.mime === 'audio/wav', phucVu.mime);
+  check('tra ve dung byte da luu', phucVu.body.equals(wav));
+}
+
 console.log('9. mat khau va phan quyen');
 const { hashPassword, verifyPassword, canEdit } = await import('../lib/auth');
 const { rateLimit, resetRateLimits } = await import('../lib/ratelimit');

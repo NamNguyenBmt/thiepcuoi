@@ -6,10 +6,11 @@
  * chỉ cần thêm một entry, không phải viết panel mới.
  */
 
-import type { NodeType, TemplateNode } from '@thiepcuoi/schema';
+import { useState } from 'react';
+import type { NodeType, TemplateDoc, TemplateNode } from '@thiepcuoi/schema';
 import { useEditor } from '../store';
 import { CheckField, ColorField, ImageField, NumberField, S, SelectField, SliderField, TextField } from './fields';
-import { pickAsset, thumbUrl } from '../assets';
+import { pickAsset, thumbUrl, uploadAssets } from '../assets';
 
 type Field =
   | { kind: 'number'; key: string; label: string; step?: number }
@@ -151,6 +152,7 @@ export function InspectorPanel() {
         <div style={{ padding: 16, color: '#6b7280' }}>
           {selection.length > 1 ? `Đang chọn ${selection.length} phần tử` : 'Chọn một phần tử để chỉnh'}
         </div>
+        {selection.length === 0 && <AudioSection />}
       </aside>
     );
   }
@@ -352,6 +354,95 @@ function FieldView({ field, value, onChange }: { field: Field; value: unknown; o
     default:
       return <TextField label={field.label} value={String(value ?? '')} onChange={onChange} />;
   }
+}
+
+/**
+ * Nhạc nền — thuộc về cả tài liệu chứ không thuộc node nào, nên hiện ở đúng chỗ
+ * Inspector đang trống: lúc không chọn phần tử nào. Trước đây không có chỗ nào
+ * chỉnh được `doc.audio`, tức là tính năng nhạc có trong schema mà không ai bật
+ * lên nổi bằng giao diện.
+ */
+function AudioSection() {
+  const doc = useEditor((s) => s.history.present);
+  const edit = useEditor((s) => s.edit);
+  const [dangTai, setDangTai] = useState(false);
+  const [loi, setLoi] = useState('');
+
+  const audio = doc.audio;
+
+  const set = (patch: Partial<NonNullable<TemplateDoc['audio']>>) =>
+    edit((d) => {
+      if (!d.audio) return;
+      Object.assign(d.audio, patch);
+    });
+
+  async function chonFile(file: File) {
+    setDangTai(true);
+    setLoi('');
+    try {
+      const { saved, failed } = await uploadAssets([file]);
+      const key = saved[0]?.key;
+      if (!key) throw new Error(failed[0]?.error ?? 'Tải lên thất bại');
+      edit((d) => {
+        d.audio = {
+          key,
+          title: d.audio?.title || file.name.replace(/\.[^.]+$/, ''),
+          autoplay: d.audio?.autoplay ?? true,
+          loop: d.audio?.loop ?? true,
+          icon: d.audio?.icon ?? '',
+          iconColor: d.audio?.iconColor || '#7a2c2c',
+        };
+      });
+    } catch (e) {
+      setLoi(e instanceof Error ? e.message : String(e));
+    } finally {
+      setDangTai(false);
+    }
+  }
+
+  return (
+    <div style={S.group}>
+      <div style={S.groupTitle}>NHẠC NỀN</div>
+
+      <div style={{ padding: '0 10px 8px', fontSize: 11, color: '#6b7280', lineHeight: 1.5 }}>
+        {audio?.key ? `Đang dùng: ${audio.key.split('/').pop()}` : 'Chưa có nhạc'}
+      </div>
+
+      <div style={{ padding: '0 10px 8px' }}>
+        <input
+          type="file"
+          accept="audio/*"
+          disabled={dangTai}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void chonFile(f);
+            e.target.value = '';
+          }}
+          style={{ fontSize: 11, width: '100%' }}
+        />
+        {dangTai && <div style={{ fontSize: 11, color: '#6b7280' }}>Đang tải lên…</div>}
+        {loi && <div style={{ fontSize: 11, color: '#b42318' }}>{loi}</div>}
+      </div>
+
+      {audio?.key && (
+        <>
+          <TextField label="Tên bài" value={audio.title} onChange={(v) => set({ title: v })} />
+          <CheckField label="Lặp lại" value={audio.loop} onChange={(v) => set({ loop: v })} />
+          {/*
+            Điện thoại chặn autoplay có tiếng; bật cũng chỉ ăn trên máy tính.
+            Nhạc thật sự bắt đầu lúc khách chạm mở bì thư (xem onEnvelopeOpen).
+          */}
+          <CheckField label="Tự phát (máy tính)" value={audio.autoplay} onChange={(v) => set({ autoplay: v })} />
+          <ColorField label="Màu nút" value={audio.iconColor} onChange={(v) => set({ iconColor: v })} />
+          <div style={{ padding: '4px 10px 8px' }}>
+            <button type="button" style={miniButton} onClick={() => edit((d) => { d.audio = null; })}>
+              Bỏ nhạc
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 const panelStyle = {
