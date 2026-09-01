@@ -32,6 +32,10 @@ npm-debug.log*
 **/.DS_Store
 Thumbs.db
 
+# Liên kết dự án Vercel — chứa id tổ chức/dự án, theo máy
+.vercel
+**/.vercel
+
 # Editor/IDE
 .vscode
 .idea
