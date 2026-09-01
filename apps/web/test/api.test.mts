@@ -570,6 +570,28 @@ check('co host va cong', moTa === 'aws-0-ap-northeast-2.pooler.supabase.com:6543
 check('khong co URL thi bao dung PGlite', describeDatabaseUrl('').includes('PGlite'));
 check('URL hong thi bao ro', describeDatabaseUrl('postgresql://u:pa#ss@host:5432/db').includes('percent-encode'));
 
+console.log('19b. doi mau cho thiep da co');
+const dsMau = await listTemplates();
+const mauA = dsMau[0]!;
+const mauB = dsMau.find((t) => t.id !== mauA.id)!;
+
+const thiepDoiMau = await createInvite({
+  id: 'inv-doi-mau', slug: 'doi-mau', ownerId: mauA.ownerId,
+  templateId: mauA.id, data: emptyInviteData(), publishedAt: null,
+});
+const dungA = (await getTemplateById(mauA.id))!.usageCount;
+const dungB = (await getTemplateById(mauB.id))!.usageCount;
+
+const sauKhiDoi = await updateInvite(thiepDoiMau.id, { templateId: mauB.id });
+check('thiep tro sang mau moi', sauKhiDoi?.templateId === mauB.id, sauKhiDoi?.templateId);
+check('mau cu bot mot luot dung', (await getTemplateById(mauA.id))!.usageCount === dungA - 1);
+check('mau moi them mot luot dung', (await getTemplateById(mauB.id))!.usageCount === dungB + 1);
+
+// Sửa nội dung mà không nêu templateId thì không được âm thầm đổi mẫu
+const giuNguyen = await updateInvite(thiepDoiMau.id, { slug: 'doi-mau-2' }, 'doi-mau');
+check('sua thu khac khong lam doi mau', giuNguyen?.templateId === mauB.id, giuNguyen?.templateId);
+check('so luot dung khong bi cong them', (await getTemplateById(mauB.id))!.usageCount === dungB + 1);
+
 console.log('20. once(): chi nho khi khoi tao thanh cong');
 const { once } = await import('../lib/once');
 

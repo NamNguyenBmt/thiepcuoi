@@ -379,15 +379,27 @@ export async function createInvite(row: InviteRow): Promise<InviteRow> {
  */
 export async function updateInvite(
   id: string,
-  patch: Partial<Pick<InviteRow, 'slug' | 'data' | 'publishedAt'>>,
+  patch: Partial<Pick<InviteRow, 'slug' | 'data' | 'publishedAt' | 'templateId'>>,
   previousSlug?: string,
 ): Promise<InviteRow | null> {
   const sql = await getSql();
   return sql.transaction(async (tx) => {
+    /**
+     * Đổi mẫu thì phải dời `usage_count` theo, trong cùng transaction: con số
+     * "N cặp đôi đã dùng" hiện ngay ngoài trang chủ, mà nó cũng là thứ khiến
+     * người ta tin hay không tin cái mẫu.
+     */
+    const { rows: truoc } = await tx.query<{ template_id: string }>(
+      'select template_id from invites where id = $1',
+      [id],
+    );
+    const mauCu = truoc[0]?.template_id;
+
     const { rows } = await tx.query(
       `update invites
           set slug         = coalesce($2, slug),
               data         = coalesce($3::jsonb, data),
+              template_id  = coalesce($6, template_id),
               published_at = case when $4 then $5::timestamptz else published_at end
         where id = $1
         returning *`,
@@ -399,9 +411,15 @@ export async function updateInvite(
         // hành), nên cần cờ riêng chứ coalesce không diễn tả được
         'publishedAt' in patch,
         patch.publishedAt ?? null,
+        patch.templateId ?? null,
       ],
     );
     const updated = rows[0] ? toInvite(rows[0]) : null;
+
+    if (updated && patch.templateId && mauCu && mauCu !== patch.templateId) {
+      await tx.query('update templates set usage_count = greatest(usage_count - 1, 0) where id = $1', [mauCu]);
+      await tx.query('update templates set usage_count = usage_count + 1 where id = $1', [patch.templateId]);
+    }
 
     if (updated && patch.slug && previousSlug && previousSlug !== patch.slug) {
       // on conflict: đổi qua lại A→B→A→C thì "B" đã có một hàng redirect từ lần

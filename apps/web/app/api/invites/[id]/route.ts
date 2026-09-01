@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { allSlugs, getInviteById, updateInvite } from '@/lib/db';
+import { allSlugs, getInviteById, getTemplateById, updateInvite } from '@/lib/db';
 import { canEdit, isFailure, requireUser } from '@/lib/auth';
 import { parseInviteData } from '@/lib/invite';
 import { validateSlug } from '@/lib/slug';
@@ -62,6 +62,18 @@ export async function PUT(request: Request, { params }: Params) {
       return NextResponse.json({ error: `Slug "${slug}" đã có người dùng` }, { status: 409 });
     }
     patch.slug = slug;
+  }
+
+  /**
+   * Đổi mẫu cho thiệp đã có. Cần vì cách dùng đúng là nhân bản mẫu chung thành
+   * mẫu riêng rồi sửa thoải mái — không có đường này thì chủ thiệp buộc phải
+   * sửa thẳng vào mẫu chung, và mọi cặp đôi khác dùng mẫu đó lãnh đủ.
+   */
+  if (typeof b.templateId === 'string' && b.templateId !== invite.templateId) {
+    if (!(await getTemplateById(b.templateId))) {
+      return NextResponse.json({ error: 'Không tìm thấy mẫu' }, { status: 404 });
+    }
+    patch.templateId = b.templateId;
   }
 
   if (typeof b.published === 'boolean') {
