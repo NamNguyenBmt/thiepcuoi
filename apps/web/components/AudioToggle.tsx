@@ -12,7 +12,20 @@ import { useEffect, useRef, useState } from 'react';
 import { assetUrl } from '@thiepcuoi/schema';
 import type { AudioConfig } from '@thiepcuoi/schema';
 
-export function AudioToggle({ audio, assetBase }: { audio: AudioConfig; assetBase: string }) {
+/**
+ * `startSignal` tăng lên mỗi lần app muốn nhạc bắt đầu — hiện là lúc khách chạm
+ * mở bì thư. Dùng một con số thay vì boolean để lần chạm sau vẫn kích hoạt được
+ * dù lần trước đã thử và trượt.
+ */
+export function AudioToggle({
+  audio,
+  assetBase,
+  startSignal = 0,
+}: {
+  audio: AudioConfig;
+  assetBase: string;
+  startSignal?: number;
+}) {
   const ref = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
 
@@ -23,6 +36,18 @@ export function AudioToggle({ audio, assetBase }: { audio: AudioConfig; assetBas
       () => setPlaying(false),
     );
   }, [audio.autoplay]);
+
+  /**
+   * Bì thư vừa mở. Vẫn phải phòng trường hợp trượt: người dùng có thể đã tự tắt
+   * tiếng ở cấp hệ điều hành, và ta không muốn nút hiện "đang phát" khi im lặng.
+   */
+  useEffect(() => {
+    if (startSignal <= 0) return;
+    ref.current?.play().then(
+      () => setPlaying(true),
+      () => setPlaying(false),
+    );
+  }, [startSignal]);
 
   function toggle() {
     const el = ref.current;

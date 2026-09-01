@@ -20,7 +20,7 @@ import { imageUrl } from '../image';
 type Phase = 'closed' | 'open' | 'gone';
 
 export function EnvelopeNode({ node }: NodeProps<'Envelope'>) {
-  const { assetBase, dpr, data, mode, scale } = useRuntime();
+  const { assetBase, dpr, data, mode, scale, onEnvelopeOpen } = useRuntime();
   const p = node.props;
 
   const [phase, setPhase] = useState<Phase>('closed');
@@ -28,6 +28,17 @@ export function EnvelopeNode({ node }: NodeProps<'Envelope'>) {
   const unlockRef = useRef<(() => void) | null>(null);
 
   const live = mode === 'render';
+
+  /**
+   * Báo cho app *bên trong* cú chạm, không phải trong `useEffect` sau đó: điện
+   * thoại chỉ cho phát nhạc có tiếng khi lệnh play nằm trong ngăn xếp gọi của
+   * một thao tác người dùng. Tách ra một tầng là mất quyền, nhạc câm lặng.
+   */
+  function moPhong() {
+    if (phase !== 'closed') return;
+    setPhase('open');
+    onEnvelopeOpen();
+  }
 
   /**
    * Khoá cuộn ngay khi bì xuất hiện. Không khoá thì khách lướt thẳng qua màn
@@ -82,12 +93,12 @@ export function EnvelopeNode({ node }: NodeProps<'Envelope'>) {
           role={live && !open ? 'button' : undefined}
           tabIndex={live && !open ? 0 : undefined}
           aria-label={live && !open ? 'Chạm để mở thiệp' : undefined}
-          onClick={() => live && setPhase('open')}
+          onClick={() => live && moPhong()}
           onKeyDown={(e) => {
             if (!live || open) return;
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
-              setPhase('open');
+              moPhong();
             }
           }}
         >

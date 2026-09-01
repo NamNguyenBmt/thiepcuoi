@@ -48,6 +48,15 @@ export interface RuntimeValue {
   wishes: Wish[];
   /** Mở bản đồ — tách ra để app quyết định mở tab mới hay modal */
   openMap: (target: { lat: number | null; lng: number | null; query: string }) => void;
+  /**
+   * Khách vừa chạm mở bì thư.
+   *
+   * Có riêng một hook cho việc này vì đó là **cú chạm đầu tiên** của khách vào
+   * trang — điện thoại chỉ cho phát nhạc có tiếng từ trong một thao tác của
+   * người dùng, nên đây là chỗ duy nhất bật nhạc mà không bị chặn. Renderer
+   * không tự phát: app quyết định làm gì.
+   */
+  onEnvelopeOpen: () => void;
 }
 
 const noop = async () => {};
@@ -67,6 +76,7 @@ export const DEFAULT_RUNTIME: RuntimeValue = {
     if (!q) return;
     window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`, '_blank', 'noopener');
   },
+  onEnvelopeOpen: () => {},
 };
 
 const RuntimeContext = createContext<RuntimeValue>(DEFAULT_RUNTIME);
