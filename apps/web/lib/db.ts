@@ -325,6 +325,24 @@ export async function createTemplate(row: Omit<TemplateRow, 'revision'>): Promis
   return toTemplate(rows[0]!);
 }
 
+/**
+ * Dấu vân của bản mà chính app đã ghi xuống lúc seed — non-null nghĩa là hàng
+ * này là MẪU DỰNG SẴN, dùng chung cho mọi cặp đôi.
+ *
+ * `updateTemplate` không đụng tới cột này, nên dấu vẫn còn kể cả sau khi có
+ * người sửa mẫu trong editor. Đó chính là điều làm nó dùng được để hỏi "mẫu này
+ * có phải của riêng ai không" — thứ mà `owner_id` không trả lời nổi, vì mẫu
+ * dựng sẵn thuộc về tài khoản admin, mà admin cũng tạo thiệp cho mình.
+ */
+export async function templateBuiltinHash(id: string): Promise<string | null> {
+  const sql = await getSql();
+  const { rows } = await sql.query<{ builtin_hash: string | null }>(
+    'select builtin_hash from templates where id = $1',
+    [id],
+  );
+  return rows[0]?.builtin_hash ?? null;
+}
+
 export async function updateTemplate(
   id: string,
   patch: Partial<Pick<TemplateRow, 'name' | 'docPacked' | 'thumbnail'>>,

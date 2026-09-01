@@ -14,7 +14,8 @@
     "assets:migrate": "tsx scripts/migrate-assets.mts",
     "s3:dev": "tsx scripts/minio-dev.mts",
     "seed:templates": "tsx scripts/seed-templates.mts",
-    "split": "tsx scripts/split-invite.mts"
+    "split": "tsx scripts/split-invite.mts",
+    "nhac": "tsx scripts/gan-nhac.mts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1115.0",

@@ -592,6 +592,95 @@ const giuNguyen = await updateInvite(thiepDoiMau.id, { slug: 'doi-mau-2' }, 'doi
 check('sua thu khac khong lam doi mau', giuNguyen?.templateId === mauB.id, giuNguyen?.templateId);
 check('so luot dung khong bi cong them', (await getTemplateById(mauB.id))!.usageCount === dungB + 1);
 
+console.log('19c. gan nhac: nhan ban mau chung, khong dung vao mau goc');
+const { attachAudio, isAttachError, cloneName, isSharedTemplate } = await import('../lib/attach-audio');
+
+const nhacThu = wavThu();
+const mauChung = (await listTemplates()).find((t) => t.slug === 'ngot-ngao')!;
+
+// Chủ thiệp là người khác chủ mẫu — đúng tình huống trên production
+const chuThiep = await createUser({
+  id: 'usr-gan-nhac', email: 'gan-nhac@vidu.local', name: 'Chu thiep',
+  passwordHash: 'x', role: 'user',
+});
+const thiepNhac = await createInvite({
+  id: 'inv-gan-nhac', slug: 'gan-nhac', ownerId: chuThiep.id,
+  templateId: mauChung.id, data: emptyInviteData(), publishedAt: null,
+});
+const docGocTruoc = (await getTemplateById(mauChung.id))!.docPacked;
+
+const ganA = await attachAudio({
+  inviteSlug: thiepNhac.slug, bytes: nhacThu, fileName: 'nen.wav', mime: 'audio/wav',
+});
+check('gan nhac chay duoc', !isAttachError(ganA), ganA);
+
+if (!isAttachError(ganA)) {
+  check('co nhan ban mau', ganA.cloned);
+  check('ban sao doi chu', ganA.template.ownerId === chuThiep.id, ganA.template.ownerId);
+  check('ban sao khac id mau goc', ganA.template.id !== mauChung.id);
+  check('ban sao khac slug mau goc', ganA.template.slug !== mauChung.slug, ganA.template.slug);
+  check('ten ban sao kem slug thiep', ganA.template.name === cloneName(mauChung.name, thiepNhac.slug), ganA.template.name);
+  check('thiep da tro sang ban sao', ganA.invite.templateId === ganA.template.id);
+
+  // Điều quan trọng nhất: mẫu chung không suy suyển
+  const mauGocSau = (await getTemplateById(mauChung.id))!;
+  check('mau chung khong bi sua', mauGocSau.docPacked === docGocTruoc);
+  check('mau chung van khong co nhac', unpackDoc(mauGocSau.docPacked).audio === null);
+
+  // Danh tính phải nằm trong chính doc, không chỉ ở cột database
+  const docBanSao = unpackDoc(ganA.template.docPacked);
+  check('doc ban sao mang id moi', docBanSao.id === ganA.template.id, docBanSao.id);
+  check('doc ban sao mang slug moi', docBanSao.slug === ganA.template.slug, docBanSao.slug);
+
+  check('doc ban sao co nhac', docBanSao.audio?.key === ganA.asset.key, docBanSao.audio);
+  check('nhac dat lap lai', docBanSao.audio?.loop === true);
+  check('nhac khong tu phat', docBanSao.audio?.autoplay === false);
+  check('nhac luu dung duoi file', ganA.asset.key.endsWith('.wav'), ganA.asset.key);
+}
+
+// Chạy lần hai: mẫu đã là của chủ thiệp thì sửa thẳng, không đẻ thêm bản sao
+const soMauTruoc = (await listTemplates()).length;
+const ganB = await attachAudio({
+  inviteSlug: thiepNhac.slug, bytes: nhacThu, fileName: 'nen2.wav', mime: 'audio/wav',
+});
+check('lan hai chay duoc', !isAttachError(ganB), ganB);
+if (!isAttachError(ganB) && !isAttachError(ganA)) {
+  check('lan hai khong nhan ban nua', !ganB.cloned);
+  check('lan hai van dung mau do', ganB.template.id === ganA.template.id);
+  check('khong de them mau', (await listTemplates()).length === soMauTruoc, soMauTruoc);
+  check('nhac moi thay nhac cu', unpackDoc(ganB.template.docPacked).audio?.key === ganB.asset.key);
+}
+
+const ganHong = await attachAudio({
+  inviteSlug: 'khong-he-ton-tai', bytes: nhacThu, fileName: 'nen.wav', mime: 'audio/wav',
+});
+check('slug la thi bao loi chu khong nem', isAttachError(ganHong), ganHong);
+
+// Cái bẫy thật: mẫu dựng sẵn thuộc về admin, mà admin cũng tự tạo thiệp cho
+// mình. Chỉ so owner_id thì ở đây kết luận "mẫu của bạn mà" rồi sửa thẳng vào
+// hàng mọi cặp đôi khác đang dùng.
+const mauChung2 = (await listTemplates()).find((t) => t.slug === 'tron-ven')!;
+const thiepCuaAdmin = await createInvite({
+  id: 'inv-admin-tu-lam', slug: 'admin-tu-lam', ownerId: mauChung2.ownerId,
+  templateId: mauChung2.id, data: emptyInviteData(), publishedAt: null,
+});
+check('mau dung san van bi coi la dung chung', await isSharedTemplate(mauChung2, mauChung2.ownerId));
+
+const docChung2Truoc = mauChung2.docPacked;
+const ganC = await attachAudio({
+  inviteSlug: thiepCuaAdmin.slug, bytes: nhacThu, fileName: 'nen.wav', mime: 'audio/wav',
+});
+check('cung chu van nhan ban', !isAttachError(ganC) && ganC.cloned, ganC);
+check(
+  'mau dung san khong bi gan nhac',
+  (await getTemplateById(mauChung2.id))!.docPacked === docChung2Truoc,
+);
+
+// Bản sao vừa tạo thì thuộc về chủ thiệp và không mang dấu dựng sẵn
+if (!isAttachError(ganC)) {
+  check('ban sao khong bi coi la dung chung', !(await isSharedTemplate(ganC.template, thiepCuaAdmin.ownerId)));
+}
+
 console.log('20. once(): chi nho khi khoi tao thanh cong');
 const { once } = await import('../lib/once');
 
