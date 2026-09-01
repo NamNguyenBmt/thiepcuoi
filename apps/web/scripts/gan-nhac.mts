@@ -39,7 +39,6 @@ function die(msg: string): never {
   process.exit(1);
 }
 
-if (!slug) die('Thiếu slug thiệp. Ví dụ: npm run nhac -- nam-thuy-2');
 
 /**
  * `[SENSITIVE]` là thứ `vercel env pull` ghi ra thay cho giá trị thật — Vercel
@@ -68,6 +67,26 @@ console.log(`Nhạc:     ${mp3Path} (${(nhac.length / 1024).toFixed(0)} KB)`);
 console.log(apply ? 'Chế độ: GHI THẬT (--apply)\n' : 'Chế độ: xem trước, không ghi gì\n');
 
 await getSql();
+
+/**
+ * Không nêu slug thì liệt kê. Chủ thiệp thường có nhiều hơn một tấm (bản vu quy
+ * cho nhà gái, bản thành hôn cho nhà trai) và không ai nhớ slug của từng tấm.
+ */
+if (!slug) {
+  const { listInvites, listTemplates } = await import('../lib/db');
+  const mau = new Map((await listTemplates()).map((t) => [t.id, t]));
+
+  console.log('Thiệp đang có:\n');
+  for (const inv of await listInvites()) {
+    const tpl = mau.get(inv.templateId);
+    const co = tpl ? unpackDoc(tpl.docPacked).audio?.key : undefined;
+    console.log(`  ${inv.slug}`);
+    console.log(`      mẫu:  ${tpl ? `${tpl.name} — ${tpl.slug}` : '(mất mẫu)'}`);
+    console.log(`      nhạc: ${co ?? '(chưa có)'}`);
+  }
+  console.log('\nChạy: npm run nhac -- <slug>');
+  process.exit(0);
+}
 
 // Xem trước thì đọc y hệt những gì `attachAudio` sẽ đọc, rồi dừng trước khi ghi
 if (!apply) {
