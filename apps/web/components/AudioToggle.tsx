@@ -9,22 +9,28 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import type { MutableRefObject } from 'react';
 import { assetUrl } from '@thiepcuoi/schema';
 import type { AudioConfig } from '@thiepcuoi/schema';
 
 /**
- * `startSignal` tăng lên mỗi lần app muốn nhạc bắt đầu — hiện là lúc khách chạm
- * mở bì thư. Dùng một con số thay vì boolean để lần chạm sau vẫn kích hoạt được
- * dù lần trước đã thử và trượt.
+ * `playRef` nhận về một hàm bật nhạc để chỗ khác gọi **ngay trong cú chạm** của
+ * khách — cụ thể là lúc mở bì thư.
+ *
+ * Vì sao không dùng prop/state để ra hiệu: state đi qua một vòng render rồi mới
+ * tới `useEffect`, tức là `play()` chạy sau khi handler đã kết thúc. Cửa sổ
+ * "transient activation" thường vẫn còn nên phần lớn máy vẫn kêu, nhưng iOS là
+ * nơi khắt khe nhất mà cũng là nơi đông khách xem thiệp nhất — gọi thẳng trong
+ * handler thì không phải đánh cược.
  */
 export function AudioToggle({
   audio,
   assetBase,
-  startSignal = 0,
+  playRef,
 }: {
   audio: AudioConfig;
   assetBase: string;
-  startSignal?: number;
+  playRef?: MutableRefObject<(() => void) | null>;
 }) {
   const ref = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -38,16 +44,39 @@ export function AudioToggle({
   }, [audio.autoplay]);
 
   /**
-   * Bì thư vừa mở. Vẫn phải phòng trường hợp trượt: người dùng có thể đã tự tắt
-   * tiếng ở cấp hệ điều hành, và ta không muốn nút hiện "đang phát" khi im lặng.
+   * Bám theo trạng thái thật của thẻ audio, đừng chỉ tin lần bấm gần nhất: iOS
+   * tự dừng nhạc khi app khác phát tiếng, và khách dừng được từ màn hình khoá.
+   * Không nghe hai sự kiện này thì nút hiện "đang phát" trong lúc im lặng.
    */
   useEffect(() => {
-    if (startSignal <= 0) return;
-    ref.current?.play().then(
-      () => setPlaying(true),
-      () => setPlaying(false),
-    );
-  }, [startSignal]);
+    const el = ref.current;
+    if (!el) return;
+    const dangPhat = () => setPlaying(true);
+    const dungLai = () => setPlaying(false);
+    el.addEventListener('play', dangPhat);
+    el.addEventListener('pause', dungLai);
+    return () => {
+      el.removeEventListener('play', dangPhat);
+      el.removeEventListener('pause', dungLai);
+    };
+  }, []);
+
+  /**
+   * Vẫn phải phòng trường hợp trượt: khách có thể đang để máy ở chế độ im lặng.
+   * Lúc đó nút phải hiện "đang tắt" chứ không được nói dối là đang phát.
+   */
+  useEffect(() => {
+    if (!playRef) return;
+    playRef.current = () => {
+      ref.current?.play().then(
+        () => setPlaying(true),
+        () => setPlaying(false),
+      );
+    };
+    return () => {
+      playRef.current = null;
+    };
+  }, [playRef]);
 
   function toggle() {
     const el = ref.current;

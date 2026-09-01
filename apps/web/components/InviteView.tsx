@@ -53,8 +53,8 @@ export function InviteView({
   const [dpr, setDpr] = useState(2);
   const [hearts, setHearts] = useState(initialHearts);
   const [burst, setBurst] = useState(0);
-  /** Tăng khi khách chạm mở bì thư — cú chạm duy nhất đủ quyền để bật nhạc */
-  const [nhacSignal, setNhacSignal] = useState(0);
+  /** Hàm bật nhạc do AudioToggle đăng ký — gọi thẳng trong cú chạm mở bì thư */
+  const batNhacRef = useRef<(() => void) | null>(null);
 
   // Số lượt bấm chưa gửi đi. Giữ trong ref chứ không phải state: nó đổi liên
   // tục khi người ta bấm nhanh, và không có gì cần vẽ lại theo nó.
@@ -166,7 +166,7 @@ export function InviteView({
           <RuntimeProvider
             value={{
               assetBase, mode: 'render', data, dpr, wishes, submitRsvp, submitWish,
-              onEnvelopeOpen: () => setNhacSignal((n) => n + 1),
+              onEnvelopeOpen: () => batNhacRef.current?.(),
             }}
           >
             <CanvasRenderer doc={doc} />
@@ -175,7 +175,7 @@ export function InviteView({
       </div>
 
       {doc.audio?.key && (
-        <AudioToggle audio={doc.audio} assetBase={assetBase} startSignal={nhacSignal} />
+        <AudioToggle audio={doc.audio} assetBase={assetBase} playRef={batNhacRef} />
       )}
 
       <InviteToolbar
