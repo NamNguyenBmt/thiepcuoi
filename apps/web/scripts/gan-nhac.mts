@@ -41,12 +41,18 @@ function die(msg: string): never {
 
 if (!slug) die('Thiếu slug thiệp. Ví dụ: npm run nhac -- nam-thuy-2');
 
-const url = process.env.DATABASE_URL;
-if (!url || url.includes('<')) {
-  die('Chưa có DATABASE_URL trong apps/web/.env.prod.local — dán chuỗi kết nối vào đó đã.');
+/**
+ * `[SENSITIVE]` là thứ `vercel env pull` ghi ra thay cho giá trị thật — Vercel
+ * không cho tải bí mật về. Bắt riêng nó ra, vì để nguyên thì script cứ thế đi
+ * kết nối rồi báo một lỗi DNS chẳng liên quan gì tới nguyên nhân thật.
+ */
+const chuaDien = (v: string | undefined) => !v || v.includes('<') || v.includes('[SENSITIVE]');
+
+if (chuaDien(process.env.DATABASE_URL)) {
+  die('DATABASE_URL trong apps/web/.env.prod.local chưa có giá trị thật — chép từ Vercel → Settings → Environment Variables.');
 }
-if (!process.env.S3_BUCKET) {
-  die('Chưa có S3_* trong apps/web/.env.prod.local — không biết đẩy mp3 vào kho nào.');
+if (chuaDien(process.env.S3_BUCKET) || chuaDien(process.env.S3_ACCESS_KEY_ID)) {
+  die('Các biến S3_* trong apps/web/.env.prod.local chưa có giá trị thật — không biết đẩy mp3 vào kho nào.');
 }
 
 let nhac: Buffer;
