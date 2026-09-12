@@ -1,12 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties, FormEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { resolveTokens } from '@thiepcuoi/schema';
+import type { PropsOf } from '@thiepcuoi/schema';
 import { NodeShell } from '../NodeShell';
 import type { NodeProps } from '../NodeShell';
 import { useRuntime } from '../context';
 import { imageUrl } from '../image';
-import type { RsvpPayload } from '../context';
+import type { RsvpPayload, Wish } from '../context';
 
 /**
  * Form RSVP.
@@ -213,10 +214,93 @@ export function RsvpFormNode({ node }: NodeProps<'RsvpForm'>) {
   );
 }
 
+/**
+ * Sổ lưu bút: đọc lời chúc của khách, và gửi lời chúc mới ngay tại chỗ.
+ *
+ * Trước đây khối này chỉ đọc — muốn gửi thì phải tìm tới thanh nổi dưới đáy
+ * trang. Nhưng chỗ khách muốn viết là chỗ họ vừa đọc lời chúc của người khác,
+ * chứ không phải một cái nút trôi nổi không dính gì tới bố cục thiệp.
+ *
+ * Ô nhập GẬP LẠI thay vì hiện sẵn: khối này nằm trong khung cao cố định do
+ * người thiết kế đặt, một cái form mở toang sẽ đẩy hết danh sách xuống dưới
+ * mép — mà chính danh sách mới là thứ khiến người ta muốn viết thêm vào. Trừ
+ * đúng một trường hợp: sổ chưa có ai viết, lúc đó chẳng có danh sách nào để
+ * che cả.
+ */
 export function WishesNode({ node }: NodeProps<'Wishes'>) {
-  const { wishes } = useRuntime();
+  const { wishes, submitWish, mode } = useRuntime();
   const p = node.props;
-  const shown = wishes.slice(0, p.maxVisible);
+
+  /*
+   * Sổ còn trắng thì mở sẵn ô nhập.
+   *
+   * Khung này cao cố định theo thiết kế của mẫu: chưa ai viết thì nó là một ô
+   * trống to đùng với đúng một cái nút ở giữa. Mở sẵn ô nhập vừa lấp chỗ trống
+   * đó, vừa nói thẳng ra việc cần làm — người mở sổ đầu tiên là người ngại
+   * nhất, đừng bắt họ bấm thêm một nhịp nữa.
+   */
+  const [composing, setComposing] = useState(
+    () => mode === 'render' && p.enableForm && wishes.length === 0,
+  );
+  const [name, setName] = useState('');
+  const [message, setMessage] = useState('');
+  const [state, setState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+  const [expanded, setExpanded] = useState(false);
+  const nameRef = useRef<HTMLInputElement>(null);
+  const opened = useRef(false);
+
+  /*
+   * Đưa con trỏ vào ô tên, nhưng CHỈ khi khách tự mở ô nhập.
+   *
+   * Sổ trống thì ô nhập mở sẵn ngay từ lần vẽ đầu — focus vào đó là trình duyệt
+   * kéo cả trang xuống chỗ khối này, trong khi khách còn đang xem dở phần trên.
+   * Bỏ qua lần đầu, những lần sau mới là do khách bấm nút.
+   */
+  useEffect(() => {
+    if (composing && opened.current) nameRef.current?.focus();
+    opened.current = true;
+  }, [composing]);
+
+  // Trong editor danh sách luôn rỗng — không có thiệp thật thì không ai gửi gì.
+  // Đưa vài lời chúc mẫu vào để người dựng mẫu thấy đúng chiều cao một thẻ,
+  // thay vì canh khung theo mỗi dòng "chưa có lời chúc nào".
+  const list = mode === 'editor' && wishes.length === 0 ? PREVIEW_WISHES : wishes;
+  const shown = expanded ? list : list.slice(0, Math.max(1, p.maxVisible));
+  const rest = list.length - shown.length;
+
+  async function send() {
+    if (mode === 'editor' || state === 'sending') return;
+    if (!name.trim() || !message.trim()) return;
+    setState('sending');
+    try {
+      await submitWish({ name: name.trim(), message: message.trim() });
+      setName('');
+      setMessage('');
+      setState('done');
+      setComposing(false);
+    } catch {
+      setState('error');
+    }
+  }
+
+  const line = `1px solid ${hairline(p.color)}`;
+  const field: CSSProperties = {
+    width: '100%',
+    boxSizing: 'border-box',
+    padding: '8px 10px',
+    marginBottom: 8,
+    // Cùng lý do với form RSVP: nhãn đi theo font của mẫu, còn chữ khách vừa
+    // gõ thì phải soát lại được, nên khoá về font hệ thống.
+    fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
+    fontSize: p.fontSize * 0.85,
+    color: p.color,
+    // Nền là chính màu chữ pha rất loãng, KHÔNG phải trắng cố định: mẫu nền tối
+    // thì màu chữ cũng sáng, và một ô trắng đục ở đó là chữ trắng trên nền
+    // trắng. Pha theo màu chữ thì ô nhập luôn tách khỏi nền mà chữ vẫn đọc được.
+    background: `color-mix(in srgb, ${p.color} 7%, transparent)`,
+    border: line,
+    borderRadius: 8,
+  };
 
   return (
     <NodeShell
@@ -224,21 +308,230 @@ export function WishesNode({ node }: NodeProps<'Wishes'>) {
       p={p}
       innerStyle={{ fontFamily: p.fontFamily, fontSize: p.fontSize, color: p.color, overflowY: 'auto' }}
     >
-      <div style={{ fontWeight: 700, textAlign: 'center', marginBottom: 10, fontSize: p.fontSize * 1.15 }}>
-        {p.titleText}
-      </div>
+      {/* Tiêu đề bỏ trống được: mẫu nào đã có dòng tiêu đề riêng bằng font thư
+          pháp ở ngay trên thì khối này không nhắc lại — và khi đó, sổ chưa có
+          ai viết thì cả cụm đầu khối biến mất, không để lại một gạch ngang lửng
+          lơ trên đầu ô nhập. */}
+      {(p.titleText || list.length > 0) && (
+        <div style={{ textAlign: 'center', marginBottom: 10 }}>
+          {p.titleText && <div style={{ fontWeight: 700, fontSize: p.fontSize * 1.15 }}>{p.titleText}</div>}
+          {list.length > 0 && (
+            <div style={{ fontSize: p.fontSize * 0.72, opacity: 0.6, marginTop: 2 }}>
+              {list.length} lời chúc
+            </div>
+          )}
+          <div style={{ width: 36, height: 1, background: p.accentColor, opacity: 0.5, margin: '8px auto 0' }} />
+        </div>
+      )}
+
+      {p.enableForm && (
+        <div style={{ marginBottom: 10 }}>
+          {composing ? (
+            <div>
+              <input
+                ref={nameRef}
+                style={field}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={p.nameLabel}
+                aria-label={p.nameLabel}
+                maxLength={120}
+              />
+              <textarea
+                style={{ ...field, minHeight: 62, resize: 'vertical' }}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={p.messageLabel}
+                aria-label={p.messageLabel}
+                maxLength={2000}
+              />
+              {state === 'error' && (
+                <div style={{ fontSize: p.fontSize * 0.75, color: '#c0392b', marginBottom: 6 }}>
+                  Gửi không được, bạn thử lại giúp nhé.
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" onClick={() => setComposing(false)} style={ghostButton(p, line)}>
+                  Đóng
+                </button>
+                <button
+                  type="button"
+                  onClick={send}
+                  disabled={state === 'sending' || !name.trim() || !message.trim()}
+                  style={{
+                    ...solidButton(p),
+                    flex: 2,
+                    opacity: state === 'sending' || !name.trim() || !message.trim() ? 0.55 : 1,
+                  }}
+                >
+                  {state === 'sending' ? 'Đang gửi…' : p.submitText}
+                </button>
+              </div>
+            </div>
+          ) : state === 'done' ? (
+            // Lời cảm ơn đứng đúng chỗ cái nút vừa đứng, và bấm được để viết
+            // tiếp: một nhà thường gửi thêm lời chúc cho người vắng mặt.
+            <button
+              type="button"
+              onClick={() => { setState('idle'); setComposing(true); }}
+              style={ghostButton(p, line)}
+            >
+              {p.successText}
+            </button>
+          ) : (
+            <button type="button" onClick={() => setComposing(true)} style={solidButton(p)}>
+              {p.composeText}
+            </button>
+          )}
+        </div>
+      )}
+
       {shown.length === 0 ? (
-        <div style={{ textAlign: 'center', opacity: 0.6 }}>{p.emptyText}</div>
+        // Ô nhập đang mở đã là lời mời viết rồi; thêm một dòng "chưa có ai
+        // viết" ngay dưới nữa thì thành hai câu nói cùng một việc.
+        composing ? null : (
+          <div style={{ textAlign: 'center', opacity: 0.6, padding: '12px 0' }}>{p.emptyText}</div>
+        )
       ) : (
         shown.map((w) => (
-          <div key={w.id} style={{ padding: '8px 0', borderBottom: '1px solid rgba(0,0,0,0.08)' }}>
-            <div style={{ fontWeight: 600 }}>{w.name}</div>
-            <div style={{ opacity: 0.85, whiteSpace: 'pre-wrap' }}>{w.message}</div>
+          <div
+            key={w.id}
+            style={{
+              display: 'flex',
+              gap: 8,
+              padding: p.cardColor ? 10 : '8px 0',
+              marginBottom: p.cardColor ? 8 : 0,
+              background: p.cardColor || undefined,
+              borderRadius: p.cardColor ? 10 : 0,
+              borderBottom: p.cardColor ? undefined : line,
+            }}
+          >
+            {p.showAvatar && (
+              <div
+                aria-hidden
+                style={{
+                  flex: '0 0 auto',
+                  width: p.fontSize * 1.9,
+                  height: p.fontSize * 1.9,
+                  borderRadius: '50%',
+                  background: p.accentColor,
+                  color: p.buttonTextColor,
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontSize: p.fontSize * 0.9,
+                  fontWeight: 700,
+                  lineHeight: 1,
+                }}
+              >
+                {initial(w.name)}
+              </div>
+            )}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontWeight: 600 }}>{w.name}</span>
+                {p.showTime && (
+                  <span style={{ fontSize: p.fontSize * 0.7, opacity: 0.55 }}>{timeAgo(w.createdAt)}</span>
+                )}
+              </div>
+              {/* `break-word` chứ không để mặc định: một khách dán vào chuỗi
+                  emoji hay link dài là đủ nong khối rộng ra khỏi khung thiệp. */}
+              <div style={{ opacity: 0.85, whiteSpace: 'pre-wrap', overflowWrap: 'break-word' }}>{w.message}</div>
+            </div>
           </div>
         ))
       )}
+
+      {rest > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          style={{ ...ghostButton(p, line), marginTop: 10 }}
+        >
+          {p.moreText} ({rest})
+        </button>
+      )}
     </NodeShell>
   );
+}
+
+/** Ba lời chúc giả, chỉ hiện trong editor để canh bố cục */
+const PREVIEW_WISHES: Wish[] = [
+  { id: 'preview-1', name: 'Minh Anh', message: 'Chúc hai bạn trăm năm hạnh phúc, sớm sinh quý tử nhé!', createdAt: '' },
+  { id: 'preview-2', name: 'Gia đình bác Hải', message: 'Mừng hai cháu. Chúc các cháu luôn yêu thương nhau.', createdAt: '' },
+  { id: 'preview-3', name: 'Tổ 4 công ty', message: 'Trăm năm hạnh phúc!', createdAt: '' },
+];
+
+/** Chữ cái đầu của TIẾNG CUỐI: người Việt gọi nhau bằng tên, không phải bằng họ */
+function initial(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return (parts[parts.length - 1] ?? '?').charAt(0).toUpperCase();
+}
+
+/**
+ * "vừa xong" / "12 phút trước" / "3 ngày trước" / "12/09".
+ *
+ * Quá một tuần thì quay về ngày tháng: "23 ngày trước" bắt người đọc tự trừ
+ * lịch, mà ở một cuốn lưu bút thì mốc thời gian chính xác cũng chẳng để làm gì.
+ */
+function timeAgo(iso: string): string {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return '';
+  const diff = Date.now() - t;
+  if (diff < 0) return 'vừa xong';
+
+  const min = Math.floor(diff / 60_000);
+  if (min < 1) return 'vừa xong';
+  if (min < 60) return `${min} phút trước`;
+
+  const hour = Math.floor(min / 60);
+  if (hour < 24) return `${hour} giờ trước`;
+
+  const day = Math.floor(hour / 24);
+  if (day === 1) return 'hôm qua';
+  if (day < 7) return `${day} ngày trước`;
+
+  const d = new Date(t);
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * Đường kẻ ăn theo màu chữ của mẫu.
+ *
+ * Kẻ đen mờ cố định thì biến mất trên nền tối, mà mẫu nào cũng có quyền dùng
+ * nền tối — lấy chính màu chữ pha loãng thì đường kẻ luôn tách khỏi nền.
+ */
+function hairline(color: string): string {
+  return `color-mix(in srgb, ${color} 22%, transparent)`;
+}
+
+function solidButton(p: PropsOf<'Wishes'>): CSSProperties {
+  return {
+    width: '100%',
+    padding: '9px 12px',
+    fontFamily: 'inherit',
+    fontSize: p.fontSize * 0.85,
+    fontWeight: 600,
+    color: p.buttonTextColor,
+    background: p.accentColor,
+    border: 'none',
+    borderRadius: 8,
+    cursor: 'pointer',
+  };
+}
+
+function ghostButton(p: PropsOf<'Wishes'>, line: string): CSSProperties {
+  return {
+    flex: 1,
+    width: '100%',
+    padding: '8px 12px',
+    fontFamily: 'inherit',
+    fontSize: p.fontSize * 0.8,
+    color: p.color,
+    background: 'transparent',
+    border: line,
+    borderRadius: 8,
+    cursor: 'pointer',
+  };
 }
 
 export function MapNode({ node }: NodeProps<'Map'>) {

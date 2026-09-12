@@ -75,22 +75,50 @@ export function InviteView({
     return res.json();
   }, []);
 
+  /**
+   * Kéo lại cả cuốn lưu bút từ server.
+   *
+   * Danh sách ban đầu render kèm trang, nên nó đứng yên từ lúc khách mở thiệp.
+   * Một tấm thiệp thường mở trong nhóm chat — mấy nhà cùng xem một lúc — nên
+   * lời chúc vừa gửi của người khác chỉ hiện ra nếu có lúc nào đó đi hỏi lại.
+   */
+  const refreshWishes = useCallback(async () => {
+    if (!inviteId) return;
+    try {
+      const res = await fetch(`/api/invites/${inviteId}/wishes`, { cache: 'no-store' });
+      if (res.ok) setWishes((await res.json()) as Wish[]);
+    } catch {
+      /* mất mạng thì giữ nguyên danh sách đang có */
+    }
+  }, [inviteId]);
+
   async function submitRsvp(payload: RsvpPayload) {
     if (!inviteId) return; // xem thử mẫu thì không ghi gì
-    await post(`/api/invites/${inviteId}/rsvp`, payload);
-    if (payload.message.trim()) {
-      setWishes((prev) => [
-        { id: `tmp-${Date.now()}`, name: payload.name, message: payload.message, createdAt: new Date().toISOString() },
-        ...prev,
-      ]);
-    }
+    // Lời nhắn kèm xác nhận được server ghi luôn thành một lời chúc, và trả về
+    // ở `wish`. Lấy bản của server chứ không tự dựng một dòng tạm: dòng tạm
+    // mang id giả, tải lại trang là nó biến mất và trông như gửi hụt.
+    const saved = (await post(`/api/invites/${inviteId}/rsvp`, payload)) as { wish?: Wish | null };
+    if (saved?.wish) setWishes((prev) => [saved.wish as Wish, ...prev]);
   }
 
   async function submitWish(wish: { name: string; message: string }) {
     if (!inviteId) return;
     const saved = (await post(`/api/invites/${inviteId}/wishes`, wish)) as Wish;
     setWishes((prev) => [saved, ...prev]);
+    // Vừa gửi là lúc người ta nhìn xuống danh sách chăm nhất — tiện thể nhặt
+    // luôn những lời chúc tới sau khi trang được render.
+    void refreshWishes();
   }
+
+  // Quay lại tab (đọc xong nhóm chat, mở lại thiệp) thì lưu bút cũng mới theo
+  useEffect(() => {
+    if (!inviteId) return;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refreshWishes();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [inviteId, refreshWishes]);
 
   /**
    * Bắn tim: hiệu ứng và bộ đếm chạy ngay tại chỗ, còn việc ghi lên server thì

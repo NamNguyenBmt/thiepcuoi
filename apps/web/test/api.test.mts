@@ -110,12 +110,20 @@ const rsvp = await createRsvp({
 check('lưu được', rsvp.id.length > 0);
 const wishes = await listWishes(invite!.id);
 check('lời chúc trong form vào luôn sổ lưu bút', wishes.length === 1 && wishes[0]!.name === 'Ngọc Anh', wishes);
+// Trang thiệp chèn thẳng hàng này vào sổ đang hiển thị, nên nó phải là hàng
+// THẬT trong bảng — không phải một bản dựng lại ở phía client.
+check(
+  'trả về đúng hàng lưu bút vừa ghi',
+  rsvp.wish?.id === wishes[0]!.id && rsvp.wish?.message === wishes[0]!.message,
+  rsvp.wish,
+);
 
-await createRsvp({
+const trong = await createRsvp({
   inviteId: invite!.id, name: 'Không lời chúc', attending: false, attendeeCount: 0,
   guestSide: null, transportation: null, pickupSlotId: null, message: '   ',
 });
 check('message rỗng thì không tạo lưu bút', (await listWishes(invite!.id)).length === 1);
+check('message rỗng thì wish trả về null', trong.wish === null, trong.wish);
 
 console.log('5. ghi song song (transaction cua Postgres)');
 await Promise.all(

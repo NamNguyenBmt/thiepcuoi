@@ -84,6 +84,11 @@ const Y_BASE = {
   date: 5000,
   timeline: 5820,
   rsvp: 6090,
+  // Sổ lưu bút nằm chen giữa `rsvp` và `gift` nên khai cùng mốc với `gift`:
+  // chiều cao thật của nó là `GROWTH.wishes`, và cơ chế shift đẩy `gift` cùng
+  // `thanks` xuống một lượt. Nhờ vậy gần một trăm toạ độ tuyệt đối phía sau
+  // không phải sửa tay con nào.
+  wishes: 7300,
   gift: 7300,
   thanks: 8000,
   end: 8382,
@@ -93,14 +98,15 @@ type SectionKey = Exclude<keyof typeof Y_BASE, 'end'>;
 
 const SECTION_ORDER: SectionKey[] = [
   'cover', 'intro', 'vows', 'event', 'sweet', 'bride',
-  'groom', 'date', 'timeline', 'rsvp', 'gift', 'thanks',
+  'groom', 'date', 'timeline', 'rsvp', 'wishes', 'gift', 'thanks',
 ];
 
 /** Tên section hiện trong editor. `vows` đổi theo biến thể nên để trống ở đây. */
 const SECTION_NAME: Record<SectionKey, string> = {
   cover: 'Bì thư', intro: 'Lời mời', vows: '', event: 'Tiệc cưới',
   sweet: 'Sweet wedding', bride: 'Cô dâu', groom: 'Chú rể', date: 'Save the date',
-  timeline: 'Trình tự', rsvp: 'Xác nhận', gift: 'Mừng cưới', thanks: 'Cảm ơn',
+  timeline: 'Trình tự', rsvp: 'Xác nhận', wishes: 'Sổ lưu bút',
+  gift: 'Mừng cưới', thanks: 'Cảm ơn',
 };
 
 /** Hai cột "Nhà Trai" / "Nhà Gái" ở phần "Lễ …" — đối xứng quanh trục giữa */
@@ -133,10 +139,19 @@ const PARTY_TAIL = 48;
 const eventHeight = (blocks: number) =>
   PARTY_INSET + (blocks - 1) * PARTY_GAP + PARTY_HEIGHT + PARTY_TAIL - EVENT_BASE;
 
+/**
+ * Cao độ phần sổ lưu bút.
+ *
+ * Khối lưu bút tự cuộn bên trong, nên con số này quyết định khách đọc được mấy
+ * lời chúc trước khi phải cuộn trong khung — bốn thẻ, đủ để thấy đây là một
+ * cuốn sổ có người viết chứ không phải một cái ô trống.
+ */
+const WISHES_HEIGHT = 600;
+
 const GROWTH: Record<SweetVariant, Partial<Record<SectionKey, number>>> = {
-  'full': { event: eventHeight(2) },
-  'vu-quy': { event: eventHeight(1), timeline: -70 },
-  'thanh-hon': { event: eventHeight(1), timeline: -70 },
+  'full': { event: eventHeight(2), wishes: WISHES_HEIGHT },
+  'vu-quy': { event: eventHeight(1), timeline: -70, wishes: WISHES_HEIGHT },
+  'thanh-hon': { event: eventHeight(1), timeline: -70, wishes: WISHES_HEIGHT },
 };
 
 interface Layout {
@@ -1099,6 +1114,48 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
       fontFamily: FORMAL, fontSize: 24,
       backgroundColor: '#ffffff',
       padding: [16, 16, 16, 16],
+      ...fx('fade', 0),
+    }),
+
+    // ═══════════ Sổ lưu bút ═══════════
+    // Đứng ngay sau form xác nhận: khách vừa bấm "Gửi xác nhận" xong là đang ở
+    // đúng tâm thế muốn nói thêm một câu, còn phần mừng cưới phía dưới thì
+    // không nên là thứ chen vào giữa hai việc đó.
+    decor('sec-wishes', {
+      top: 7330, left: 227, width: 46, height: 46, img: SEED_KEYS.heartRose,
+      z: 64, anim: STILL,
+    }),
+    text('sec-wishes', {
+      top: 7392, left: 91.1, width: 315.6, height: 46,
+      text: 'Sổ lưu bút', font: FORMAL, size: 44, weight: '400', color: ROSE, z: 65, anim: STILL,
+    }),
+    text('sec-wishes', {
+      top: 7444, left: 44, width: 412, height: 44,
+      text:
+        'Đám cưới của chúng mình sẽ trọn vẹn hơn với đôi dòng của bạn — ' +
+        'viết vài chữ vào cuốn sổ này nhé!',
+      font: SANS, size: 13, weight: '400', color: INK, lineHeight: '1.6', z: 65,
+    }),
+    createNode('Wishes', 'sec-wishes', {
+      top: 7500, left: 30, width: 440, height: 380, zIndex: 66,
+      // Tiêu đề để trống: dòng thư pháp "Sổ lưu bút" ở ngay trên đã nói rồi.
+      titleText: '',
+      emptyText: 'Chưa có ai viết — bạn là người mở sổ nhé',
+      maxVisible: 4,
+      composeText: 'Viết lời chúc',
+      nameLabel: 'Tên của bạn',
+      messageLabel: 'Gửi cô dâu chú rể đôi lời…',
+      submitText: 'Gửi lời chúc',
+      successText: 'Cảm ơn bạn! Chạm để viết thêm một lời nữa.',
+      moreText: 'Xem thêm',
+      // Chữ khách gõ đi bằng font sans: một cuốn lưu bút toàn nét thư pháp
+      // nghiêng thì đẹp đúng một thoáng rồi không ai đọc hết được thẻ thứ hai.
+      fontFamily: SANS, fontSize: 15, color: INK,
+      accentColor: ROSE, buttonTextColor: '#ffffff', cardColor: '#ffffff',
+      backgroundColor: PAPER,
+      borderSize: 1, borderColor: ROSE,
+      borderRadius: [14, 14, 14, 14],
+      padding: [16, 14, 16, 14],
       ...fx('fade', 0),
     }),
 

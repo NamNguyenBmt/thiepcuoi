@@ -464,7 +464,16 @@ export async function getSlugRedirectTarget(oldSlug: string): Promise<string | n
   return rows[0]?.invite_id ?? null;
 }
 
-export async function createRsvp(row: Omit<RsvpRow, 'id' | 'createdAt'>): Promise<RsvpRow> {
+/**
+ * Ghi một phản hồi, kèm lời chúc nếu khách có nhắn gì.
+ *
+ * Trả về luôn hàng lưu bút vừa ghi (hoặc `null`): trang thiệp cần đúng hàng đó
+ * — id thật, mốc thời gian thật — để chèn vào sổ ngay tại chỗ. Tự dựng một
+ * dòng tạm ở phía client thì nó mang id giả và biến mất khi tải lại trang.
+ */
+export async function createRsvp(
+  row: Omit<RsvpRow, 'id' | 'createdAt'>,
+): Promise<RsvpRow & { wish: WishRow | null }> {
   const sql = await getSql();
   return sql.transaction(async (tx) => {
     const { rows } = await tx.query(
@@ -486,14 +495,15 @@ export async function createRsvp(row: Omit<RsvpRow, 'id' | 'createdAt'>): Promis
     const saved = toRsvp(rows[0]!);
 
     // Lời chúc kèm trong form RSVP cũng vào sổ lưu bút, khách không phải gõ 2 lần
-    if (saved.message.trim()) {
-      await tx.query(
-        `insert into wishes (id, invite_id, name, message, created_at)
-         values ($1, $2, $3, $4, $5)`,
-        [crypto.randomUUID(), saved.inviteId, saved.name, saved.message.trim(), saved.createdAt],
-      );
-    }
-    return saved;
+    if (!saved.message.trim()) return { ...saved, wish: null };
+
+    const { rows: wishRows } = await tx.query(
+      `insert into wishes (id, invite_id, name, message, created_at)
+       values ($1, $2, $3, $4, $5)
+       returning *`,
+      [crypto.randomUUID(), saved.inviteId, saved.name, saved.message.trim(), saved.createdAt],
+    );
+    return { ...saved, wish: toWish(wishRows[0]!) };
   });
 }
 

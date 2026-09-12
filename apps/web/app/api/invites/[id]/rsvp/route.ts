@@ -78,6 +78,8 @@ export async function POST(request: Request, { params }: Params) {
   const parsed = parseRsvp(body);
   if (!parsed) return NextResponse.json({ error: 'Dữ liệu không hợp lệ' }, { status: 400 });
 
+  // `createRsvp` ghi luôn lời nhắn vào sổ lưu bút và trả kèm hàng đó ở `wish`
+  // — trang thiệp chèn thẳng nó vào danh sách đang hiển thị.
   const saved = await createRsvp({ inviteId: id, ...parsed });
   return NextResponse.json(saved, { status: 201 });
 }

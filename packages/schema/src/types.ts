@@ -302,10 +302,36 @@ export interface MapProps extends BaseProps {
 export interface WishesProps extends BaseProps {
   titleText: string;
   emptyText: string;
+  /** Số lời chúc hiện sẵn; phần còn lại nằm sau nút "Xem thêm" */
   maxVisible: number;
   color: string;
   fontFamily: string;
   fontSize: number;
+
+  /**
+   * Có ô gửi lời chúc ngay trong khối, hay chỉ là bảng đọc.
+   *
+   * Tắt được vì một tấm thiệp có thể đã có chỗ gửi khác — ô lời nhắn trong form
+   * xác nhận, hay thanh nổi dưới đáy trang — và hai chỗ nhập giống hệt nhau
+   * nằm cách nhau một màn cuộn thì khách gửi hai lần rồi tưởng mình gửi hụt.
+   */
+  enableForm: boolean;
+  /** Chữ trên nút mở ô nhập. Ô nhập gập lại để danh sách luôn thấy được. */
+  composeText: string;
+  nameLabel: string;
+  messageLabel: string;
+  submitText: string;
+  successText: string;
+  moreText: string;
+  /** "2 giờ trước" dưới tên người gửi */
+  showTime: boolean;
+  /** Chữ cái đầu của tên trong một vòng tròn màu nhấn */
+  showAvatar: boolean;
+  /** Vòng tròn tên, nút gửi, gạch chân tiêu đề */
+  accentColor: string;
+  buttonTextColor: string;
+  /** Nền một lời chúc. Để rỗng thì thẻ trong suốt, chỉ còn đường kẻ ngăn. */
+  cardColor: string;
 }
 
 export interface VideoProps extends BaseProps {

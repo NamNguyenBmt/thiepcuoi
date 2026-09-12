@@ -210,6 +210,18 @@ export const NODE_DEFAULTS: DefaultsMap = {
     color: '#333333',
     fontFamily: 'Quicksand',
     fontSize: 14,
+    enableForm: true,
+    composeText: 'Viết lời chúc',
+    nameLabel: 'Tên của bạn',
+    messageLabel: 'Lời chúc gửi cô dâu chú rể',
+    submitText: 'Gửi lời chúc',
+    successText: 'Cảm ơn bạn, lời chúc đã được gửi!',
+    moreText: 'Xem thêm',
+    showTime: true,
+    showAvatar: true,
+    accentColor: '#7a2c2c',
+    buttonTextColor: '#ffffff',
+    cardColor: '',
   }),
 
   Video: () => ({

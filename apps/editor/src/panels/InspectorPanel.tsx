@@ -118,7 +118,17 @@ const TYPE_FIELDS: Partial<Record<NodeType, Field[]>> = {
   ],
   Wishes: [
     { kind: 'text', key: 'titleText', label: 'Tiêu đề' },
-    { kind: 'number', key: 'maxVisible', label: 'Số lời chúc' },
+    { kind: 'number', key: 'maxVisible', label: 'Số lời chúc hiện sẵn' },
+    { kind: 'text', key: 'emptyText', label: 'Khi chưa có ai gửi' },
+    { kind: 'check', key: 'enableForm', label: 'Cho gửi lời chúc' },
+    { kind: 'text', key: 'composeText', label: 'Chữ trên nút viết' },
+    { kind: 'text', key: 'submitText', label: 'Chữ trên nút gửi' },
+    { kind: 'text', key: 'successText', label: 'Lời cảm ơn' },
+    { kind: 'color', key: 'accentColor', label: 'Màu nhấn' },
+    { kind: 'color', key: 'buttonTextColor', label: 'Màu chữ trên nút' },
+    { kind: 'color', key: 'cardColor', label: 'Nền một lời chúc' },
+    { kind: 'check', key: 'showAvatar', label: 'Vòng tròn tên' },
+    { kind: 'check', key: 'showTime', label: 'Hiện thời điểm gửi' },
   ],
   Video: [
     { kind: 'check', key: 'autoplay', label: 'Tự phát' },
