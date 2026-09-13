@@ -1097,7 +1097,11 @@ export function sweetTemplate(variant: SweetVariant = 'full'): TemplateDoc {
       top: 6600, left: 82.3, width: 338.1, height: 182.6, img: SEED_KEYS.album[2]!, slot: 'album3', z: 53,
     }),
     createNode('RsvpForm', 'sec-rsvp', {
-      top: 6871.1, left: 104.5, width: 300, height: 366, zIndex: 55,
+      // Cao 400 chứ không phải 366: đo trên máy thì nội dung form (tiêu đề, ô
+      // tên, hai lựa chọn tham dự, ô số người, nút gửi) chiếm 389px kể cả
+      // padding — 366 làm nút gửi bị mép dưới cắt ngang. Dưới nó còn 93px
+      // trống trước phần lưu bút, nới 34px vẫn dư chỗ.
+      top: 6871.1, left: 104.5, width: 300, height: 400, zIndex: 55,
       titleText: 'Xác nhận tham dự',
       nameLabel: 'Họ và tên',
       attendLabel: 'Bạn sẽ tham dự chứ?',

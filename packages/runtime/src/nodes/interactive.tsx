@@ -190,25 +190,47 @@ export function RsvpFormNode({ node }: NodeProps<'RsvpForm'>) {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={state === 'sending'}
+        {/*
+          Nút gửi DÍNH ĐÁY khung.
+
+          Khung form cao cố định theo thiết kế của mẫu, còn chiều cao thật của
+          nội dung thì đổi theo số câu hỏi được bật: chủ thiệp bật thêm ô lời
+          chúc hay mục xe đưa đón là nội dung dài ra, và cái nút — thứ duy nhất
+          khách bắt buộc phải chạm — bị mép dưới cắt làm đôi. Nhìn như hỏng, và
+          khách không biết là cuộn trong khung thì thấy tiếp.
+
+          `sticky` chỉ ghim khi thật sự có phần tràn; vừa khít thì nó nằm đúng
+          chỗ cũ trong dòng chảy, không mẫu nào đang chạy bị xê dịch.
+        */}
+        <div
           style={{
-            width: '100%',
-            padding: '10px 12px',
-            fontSize: p.fontSize * 0.9,
-            fontFamily: 'inherit',
-            fontWeight: 600,
-            color: p.buttonTextColor,
-            background: p.buttonColor,
-            border: 'none',
-            borderRadius: 6,
-            cursor: 'pointer',
-            opacity: state === 'sending' ? 0.6 : 1,
+            position: 'sticky',
+            bottom: 0,
+            paddingTop: 8,
+            // Không có nền thì các ô nhập trôi qua phía sau nút, lộ ra ở khe hở
+            background: p.backgroundColor || 'transparent',
           }}
         >
-          {state === 'sending' ? 'Đang gửi…' : p.submitText}
-        </button>
+          <button
+            type="submit"
+            disabled={state === 'sending'}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              fontSize: p.fontSize * 0.9,
+              fontFamily: 'inherit',
+              fontWeight: 600,
+              color: p.buttonTextColor,
+              background: p.buttonColor,
+              border: 'none',
+              borderRadius: 6,
+              cursor: 'pointer',
+              opacity: state === 'sending' ? 0.6 : 1,
+            }}
+          >
+            {state === 'sending' ? 'Đang gửi…' : p.submitText}
+          </button>
+        </div>
       </form>
     </NodeShell>
   );
