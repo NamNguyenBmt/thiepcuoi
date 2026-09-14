@@ -19,11 +19,16 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { groom, bride } = invite.data;
   const title = `Thiệp cưới ${groom.shortName} & ${bride.shortName}`;
 
+  const origin = await siteOrigin();
+  // Đường dẫn gốc, bỏ mọi query: link gửi kèm `?v=2` hay `?fbclid=...` vẫn dùng
+  // chung một bản xem trước, không bắt Facebook/Zalo đọc lại từng biến thể
+  const canonical = `${origin}/thiep/${encodeURIComponent(invite.slug)}`;
+
   const key = pickShareKey(invite.data.photos);
   const path = key ? sharePath(invite.slug, key) : null;
   const image = path
     ? {
-        url: `${await siteOrigin()}${path}`,
+        url: `${origin}${path}`,
         width: SHARE_WIDTH,
         height: SHARE_HEIGHT,
         alt: title,
@@ -33,10 +38,12 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return {
     title,
     description: invite.data.message,
+    alternates: { canonical },
     openGraph: {
       title,
       description: invite.data.message,
       type: 'website',
+      url: canonical,
       ...(image ? { images: [image] } : {}),
     },
     twitter: {
