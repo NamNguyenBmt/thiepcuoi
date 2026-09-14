@@ -105,6 +105,7 @@ const TYPE_FIELDS: Partial<Record<NodeType, Field[]>> = {
     { kind: 'check', key: 'showThumbnails', label: 'Ảnh nhỏ' },
     { kind: 'check', key: 'showNavButtons', label: 'Nút chuyển' },
     { kind: 'check', key: 'autoplay', label: 'Tự chạy' },
+    { kind: 'number', key: 'autoplayInterval', label: 'Chuyển ảnh sau (ms)' },
   ],
   GiftQr: [
     { kind: 'image', key: 'imgKey', label: 'Icon' },
