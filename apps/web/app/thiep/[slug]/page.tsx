@@ -1,7 +1,8 @@
 import { notFound, permanentRedirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import QRCode from 'qrcode';
-import { getHearts, getInviteById, getInviteBySlug, getSlugRedirectTarget, getTemplateById, listWishes } from '@/lib/db';
+import { getAssetByKey, getHearts, getInviteById, getInviteBySlug, getSlugRedirectTarget, getTemplateById, listWishes } from '@/lib/db';
+import { pickShareKey, shareImageUrl, SHARE_HEIGHT, SHARE_WIDTH } from '@/lib/share-image';
 import { InviteView } from '@/components/InviteView';
 import { ASSET_BASE } from '@/lib/config';
 import { siteOrigin } from '@/lib/site-url';
@@ -17,10 +18,33 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 
   const { groom, bride } = invite.data;
   const title = `Thiệp cưới ${groom.shortName} & ${bride.shortName}`;
+
+  const key = pickShareKey(invite.data.photos);
+  const asset = key ? await getAssetByKey(key.split('?')[0]!) : null;
+  const image = key
+    ? {
+        url: shareImageUrl(await siteOrigin(), ASSET_BASE, key, asset),
+        width: SHARE_WIDTH,
+        height: SHARE_HEIGHT,
+        alt: title,
+      }
+    : null;
+
   return {
     title,
     description: invite.data.message,
-    openGraph: { title, description: invite.data.message, type: 'website' },
+    openGraph: {
+      title,
+      description: invite.data.message,
+      type: 'website',
+      ...(image ? { images: [image] } : {}),
+    },
+    twitter: {
+      card: image ? 'summary_large_image' : 'summary',
+      title,
+      description: invite.data.message,
+      ...(image ? { images: [image.url] } : {}),
+    },
   };
 }
 
