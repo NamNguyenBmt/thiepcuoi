@@ -1,8 +1,8 @@
 import { notFound, permanentRedirect } from 'next/navigation';
 import type { Metadata } from 'next';
 import QRCode from 'qrcode';
-import { getAssetByKey, getHearts, getInviteById, getInviteBySlug, getSlugRedirectTarget, getTemplateById, listWishes } from '@/lib/db';
-import { pickShareKey, shareImageUrl, SHARE_HEIGHT, SHARE_WIDTH } from '@/lib/share-image';
+import { getHearts, getInviteById, getInviteBySlug, getSlugRedirectTarget, getTemplateById, listWishes } from '@/lib/db';
+import { pickShareKey, sharePath, SHARE_HEIGHT, SHARE_WIDTH } from '@/lib/share-image';
 import { InviteView } from '@/components/InviteView';
 import { ASSET_BASE } from '@/lib/config';
 import { siteOrigin } from '@/lib/site-url';
@@ -20,10 +20,10 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const title = `Thiệp cưới ${groom.shortName} & ${bride.shortName}`;
 
   const key = pickShareKey(invite.data.photos);
-  const asset = key ? await getAssetByKey(key.split('?')[0]!) : null;
-  const image = key
+  const path = key ? sharePath(invite.slug, key) : null;
+  const image = path
     ? {
-        url: shareImageUrl(await siteOrigin(), ASSET_BASE, key, asset),
+        url: `${await siteOrigin()}${path}`,
         width: SHARE_WIDTH,
         height: SHARE_HEIGHT,
         alt: title,

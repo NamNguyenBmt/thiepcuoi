@@ -7,14 +7,20 @@
  * Cắt sẵn ở server chứ không để nền tảng tự cắt: ảnh cưới phần lớn chụp dọc,
  * còn khung xem trước thì ngang, và nền tảng cắt ở chính giữa — đúng chỗ ngang
  * ngực, đầu hai người nằm ngoài khung.
+ *
+ * Phục vụ qua đường dẫn "sạch" `/thiep/<slug>/anh/<uuid>.jpg` thay vì
+ * `/api/assets/...?crop=...&format=jpeg`: với URL có query, Zalo lấy được tiêu
+ * đề mà để trống ảnh, trong khi ảnh vẫn tải bình thường. Các trang thiệp khác
+ * hiện được ảnh trên Zalo đều dùng đường dẫn kết thúc bằng `.jpg`.
  */
 
-import { assetUrl } from '@thiepcuoi/schema';
 import type { InviteData } from '@thiepcuoi/schema';
 
 /** Tỉ lệ Facebook/Zalo khuyến nghị cho ảnh lớn */
 export const SHARE_WIDTH = 1200;
 export const SHARE_HEIGHT = 628;
+
+const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
 
 /**
  * Chọn ảnh: `share` nếu chủ thiệp đặt riêng, không thì ảnh bìa, không thì ảnh
@@ -42,16 +48,20 @@ export function shareCrop(width: number, height: number): { x: number; y: number
 }
 
 /**
- * URL tuyệt đối — trình thu thập của các nền tảng không hiểu đường dẫn tương đối.
- * Không biết kích thước ảnh gốc thì bỏ cắt, để nền tảng tự xử.
+ * Đường dẫn ảnh xem trước. Mang uuid của ảnh nên đổi ảnh bìa là đổi URL — cache
+ * vĩnh viễn được mà không sợ nền tảng giữ ảnh cũ.
  */
-export function shareImageUrl(
-  origin: string,
-  assetBase: string,
-  key: string,
-  size: { width: number; height: number } | null,
-): string {
-  const base = /^https?:\/\//.test(assetBase) ? assetBase : `${origin}${assetBase}`;
-  const crop = size && size.width > 0 && size.height > 0 ? shareCrop(size.width, size.height) : undefined;
-  return assetUrl(base, key.split('?')[0]!, { crop, resize: SHARE_WIDTH, format: 'jpeg', quality: 85 });
+export function sharePath(slug: string, key: string): string | null {
+  const id = key.match(UUID_RE)?.[0];
+  return id ? `/thiep/${encodeURIComponent(slug)}/anh/${id}.jpg` : null;
+}
+
+/**
+ * Ngược lại từ tên file về asset key — chỉ nhận ảnh đang nằm trong chính thiệp
+ * đó, để đường dẫn này không thành cửa đọc ảnh bất kỳ trong kho.
+ */
+export function shareKeyForFile(photos: InviteData['photos'], file: string): string | null {
+  const id = file.match(/^([0-9a-f-]{36})\.jpg$/)?.[1];
+  if (!id) return null;
+  return Object.values(photos).find((k) => k && k.split('?')[0]!.match(UUID_RE)?.[0] === id)?.split('?')[0] ?? null;
 }

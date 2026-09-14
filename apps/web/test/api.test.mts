@@ -788,5 +788,27 @@ soCau = 0;
 await migrate(demSql);
 check('ngay sau do lai bo qua duoc', soCau === 1, soCau);
 
+// ─── Ảnh xem trước khi chia sẻ link ───
+const { pickShareKey, shareCrop, sharePath, shareKeyForFile, SHARE_WIDTH, SHARE_HEIGHT } = await import('../lib/share-image');
+const anhBia = 'uploads/fe6af1b0-a54e-4b4a-892d-075b31bb5cc5.jpg';
+const anhDoi = 'uploads/b37f492e-d9e8-410a-9ff4-384c71fdd37c.jpg';
+check('uu tien anh share', pickShareKey({ cover: anhBia, share: anhDoi }) === anhDoi);
+check('khong co share thi lay anh bia', pickShareKey({ couple: anhDoi, cover: anhBia }) === anhBia);
+check('thiep khong co anh thi khong co anh xem truoc', pickShareKey({}) === null);
+
+const tiLe = SHARE_WIDTH / SHARE_HEIGHT;
+const anhDoc = shareCrop(2000, 3000);
+check('anh doc: cat dung ti le, lay phan tren', Math.abs(anhDoc.w / anhDoc.h - tiLe) < 0.01 && anhDoc.y > 0 && anhDoc.y + anhDoc.h / 2 < 1500, anhDoc);
+const ngang = shareCrop(3000, 1000);
+check('anh rat ngang: cat hai ben, giu giua', ngang.y === 0 && ngang.h === 1000 && ngang.x > 0 && ngang.x + ngang.w <= 3000, ngang);
+const vua = shareCrop(3000, 2115);
+check('anh ngang: vung cat nam trong anh', vua.y >= 0 && vua.y + vua.h <= 2115, vua);
+
+const duongDan = sharePath('nam-thuy', anhBia);
+check('duong dan sach, ket thuc .jpg, khong co query', duongDan === '/thiep/nam-thuy/anh/fe6af1b0-a54e-4b4a-892d-075b31bb5cc5.jpg', duongDan);
+check('tu ten file ra dung key', shareKeyForFile({ cover: anhBia }, 'fe6af1b0-a54e-4b4a-892d-075b31bb5cc5.jpg') === anhBia);
+check('chan anh khong thuoc thiep', shareKeyForFile({ cover: anhBia }, 'b37f492e-d9e8-410a-9ff4-384c71fdd37c.jpg') === null);
+check('chan ten file la', shareKeyForFile({ cover: anhBia }, '../package.json') === null);
+
 console.log(failed === 0 ? '\nPASS' : `\n${failed} FAILED`);
 process.exit(failed === 0 ? 0 : 1);
