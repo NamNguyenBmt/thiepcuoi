@@ -156,12 +156,17 @@ try {
 check('không ghi được lời chúc cho thiệp không tồn tại', fkChan);
 
 console.log('6b. hai thiệp dùng chung sổ lưu bút');
-const { shareWishbook } = await import('../lib/db');
+const { shareWishbook, addHearts, getHearts } = await import('../lib/db');
 await createWish({ inviteId: vuQuy!.id, name: 'Khách vu quy', message: 'Chúc mừng!' });
 await createWish({ inviteId: thanhHon!.id, name: 'Khách thành hôn cũ', message: 'Hạnh phúc nhé' });
+await addHearts(vuQuy!.id, 170);
+await addHearts(thanhHon!.id, 17);
 
 const gop = await shareWishbook(thanhHon!.id, vuQuy!.id);
 check('gộp được sổ', gop.ok && gop.moved === 1, gop);
+check('tim riêng của thiệp mượn bị bỏ', gop.ok && gop.droppedHearts === 17, gop);
+check('số tim lấy thiệp gốc làm chuẩn', (await getHearts(thanhHon!.id)) === 170);
+check('tim bấm ở thiệp mượn cộng vào số chung', (await addHearts(thanhHon!.id, 3)) === 173 && (await getHearts(vuQuy!.id)) === 173);
 
 await createWish({ inviteId: thanhHon!.id, name: 'Khách gửi ở thành hôn', message: 'Trăm năm' });
 await createRsvp({

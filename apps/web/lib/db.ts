@@ -517,16 +517,17 @@ export async function createRsvp(
 }
 
 /**
- * Cho thiệp `inviteId` dùng chung sổ lưu bút của thiệp `rootId`: lời chúc đã
- * có của nó dồn sang sổ gốc, từ đó mọi lời chúc mới cũng ghi thẳng vào sổ gốc.
+ * Cho thiệp `inviteId` dùng chung sổ lưu bút và bộ đếm tim của thiệp `rootId`.
+ * Lời chúc đã có của nó dồn sang sổ gốc; số tim thì lấy của thiệp gốc làm chuẩn,
+ * số riêng của nó bỏ đi. Từ đó mọi lời chúc, lượt tim mới ghi thẳng vào thiệp gốc.
  *
- * Từ chối khi sổ gốc lại đang mượn sổ khác, hoặc khi đã có thiệp mượn sổ của
- * `inviteId` — chỉ cho một tầng, để `wishbookOf` không phải lần theo chuỗi.
+ * Từ chối khi thiệp gốc lại đang mượn của thiệp khác, hoặc khi đã có thiệp mượn
+ * của `inviteId` — chỉ cho một tầng, để `wishbookOf` không phải lần theo chuỗi.
  */
 export async function shareWishbook(
   inviteId: string,
   rootId: string,
-): Promise<{ ok: true; moved: number } | { ok: false; error: string }> {
+): Promise<{ ok: true; moved: number; droppedHearts: number } | { ok: false; error: string }> {
   if (inviteId === rootId) return { ok: false, error: 'hai thiệp trùng nhau' };
   const sql = await getSql();
   return sql.transaction(async (tx) => {
@@ -547,7 +548,11 @@ export async function shareWishbook(
       'update wishes set invite_id = $2 where invite_id = $1 returning id',
       [inviteId, rootId],
     );
-    return { ok: true, moved: moved.length };
+    const { rows: dropped } = await tx.query<{ hearts: string }>(
+      'delete from reactions where invite_id = $1 returning hearts::text as hearts',
+      [inviteId],
+    );
+    return { ok: true, moved: moved.length, droppedHearts: Number(dropped[0]?.hearts ?? 0) };
   });
 }
 
@@ -565,7 +570,8 @@ export async function createWish(row: Omit<WishRow, 'id' | 'createdAt'>): Promis
 // ─────────────────────────── Bắn tim ───────────────────────────
 
 /**
- * Cộng thêm lượt tim và trả về tổng mới.
+ * Cộng thêm lượt tim và trả về tổng mới. Thiệp dùng chung với thiệp khác
+ * (`shareWishbook`) thì cộng vào bộ đếm của thiệp gốc.
  *
  * Cộng ngay trong câu lệnh (`hearts + $2`) chứ không đọc-rồi-ghi từ Node: hai
  * khách bấm cùng lúc thì cách kia mất một lượt, còn cách này thì không.
@@ -573,7 +579,7 @@ export async function createWish(row: Omit<WishRow, 'id' | 'createdAt'>): Promis
 export async function addHearts(inviteId: string, amount: number): Promise<number> {
   const sql = await getSql();
   const { rows } = await sql.query<{ hearts: string }>(
-    `insert into reactions (invite_id, hearts) values ($1, $2)
+    `insert into reactions (invite_id, hearts) values (${wishbookOf('$1')}, $2)
      on conflict (invite_id) do update
        set hearts = reactions.hearts + $2, updated_at = now()
      returning hearts::text as hearts`,
@@ -585,7 +591,7 @@ export async function addHearts(inviteId: string, amount: number): Promise<numbe
 export async function getHearts(inviteId: string): Promise<number> {
   const sql = await getSql();
   const { rows } = await sql.query<{ hearts: string }>(
-    'select hearts::text as hearts from reactions where invite_id = $1',
+    `select hearts::text as hearts from reactions where invite_id = ${wishbookOf('$1')}`,
     [inviteId],
   );
   return Number(rows[0]?.hearts ?? 0);
