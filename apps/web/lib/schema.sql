@@ -59,6 +59,11 @@ create table if not exists invites (
 );
 create index if not exists invites_owner_idx on invites (owner_id);
 
+-- Sổ lưu bút dùng chung: thiệp có cột này đọc và ghi lời chúc vào sổ của thiệp
+-- được trỏ tới — vd. hai tấm vu quy / thành hôn của cùng một đám cưới. Null =
+-- sổ của chính nó. Chỉ đi đúng một bước, không lần theo chuỗi (xem lib/db.ts).
+alter table invites add column if not exists wishbook_invite_id text references invites(id) on delete set null;
+
 -- Slug cũ của thiệp sau khi đổi tên, để link đã gửi cho khách không chết.
 -- Tra trực tiếp trong `invites` luôn ưu tiên trước bảng này (xem lib/db.ts),
 -- nên một slug từng bị đổi đi rồi được dùng lại cho thiệp khác không xung đột.

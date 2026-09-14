@@ -17,6 +17,7 @@
     "split": "tsx scripts/split-invite.mts",
     "nhac": "tsx scripts/gan-nhac.mts",
     "luubut": "tsx scripts/them-luu-but.mts",
+    "gopluubut": "tsx scripts/gop-luu-but.mts",
     "naform": "tsx scripts/nang-form-rsvp.mts"
   },
   "dependencies": {

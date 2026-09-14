@@ -155,6 +155,27 @@ try {
 }
 check('không ghi được lời chúc cho thiệp không tồn tại', fkChan);
 
+console.log('6b. hai thiệp dùng chung sổ lưu bút');
+const { shareWishbook } = await import('../lib/db');
+await createWish({ inviteId: vuQuy!.id, name: 'Khách vu quy', message: 'Chúc mừng!' });
+await createWish({ inviteId: thanhHon!.id, name: 'Khách thành hôn cũ', message: 'Hạnh phúc nhé' });
+
+const gop = await shareWishbook(thanhHon!.id, vuQuy!.id);
+check('gộp được sổ', gop.ok && gop.moved === 1, gop);
+
+await createWish({ inviteId: thanhHon!.id, name: 'Khách gửi ở thành hôn', message: 'Trăm năm' });
+await createRsvp({
+  inviteId: thanhHon!.id, name: 'Khách RSVP thành hôn', attending: true, attendeeCount: 1,
+  guestSide: 'groom', transportation: null, pickupSlotId: null, message: 'Sẽ tới!',
+});
+const soVuQuy = await listWishes(vuQuy!.id);
+const soThanhHon = await listWishes(thanhHon!.id);
+check('sổ chung có đủ lời chúc cũ và mới của cả hai', soVuQuy.length === 4, soVuQuy.map((w) => w.name));
+check('mở thiệp nào cũng ra cùng một sổ', JSON.stringify(soVuQuy) === JSON.stringify(soThanhHon));
+check('rsvp vẫn tách theo thiệp', (await listRsvps(thanhHon!.id)).length === 1 && (await listRsvps(vuQuy!.id)).length === 0);
+check('không cho mượn sổ của thiệp đang mượn sổ khác', !(await shareWishbook(second.id, thanhHon!.id)).ok);
+check('không cho thiệp đang được mượn sổ đi mượn sổ khác', !(await shareWishbook(vuQuy!.id, second.id)).ok);
+
 await rm(dir, { recursive: true, force: true });
 console.log('7. luu mau');
 const t0 = (await listTemplates())[0]!;

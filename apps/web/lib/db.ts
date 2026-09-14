@@ -215,11 +215,20 @@ export async function listInvitesByOwner(ownerId: string): Promise<InviteRow[]> 
   return rows.map(toInvite);
 }
 
+/**
+ * Biểu thức SQL ra id của thiệp giữ sổ lưu bút cho thiệp ở tham số `param` —
+ * chính nó, hoặc thiệp mà `wishbook_invite_id` trỏ tới. Thiệp không tồn tại thì
+ * giữ nguyên id đó, để câu insert vẫn vấp khoá ngoại chứ không lặng lẽ bỏ qua.
+ */
+const wishbookOf = (param: string) =>
+  `coalesce((select wishbook_invite_id from invites where id = ${param}), ${param})`;
+
 export async function listWishes(inviteId: string): Promise<WishRow[]> {
   const sql = await getSql();
-  const { rows } = await sql.query('select * from wishes where invite_id = $1 order by created_at desc', [
-    inviteId,
-  ]);
+  const { rows } = await sql.query(
+    `select * from wishes where invite_id = ${wishbookOf('$1')} order by created_at desc`,
+    [inviteId],
+  );
   return rows.map(toWish);
 }
 
@@ -499,7 +508,7 @@ export async function createRsvp(
 
     const { rows: wishRows } = await tx.query(
       `insert into wishes (id, invite_id, name, message, created_at)
-       values ($1, $2, $3, $4, $5)
+       values ($1, ${wishbookOf('$2')}, $3, $4, $5)
        returning *`,
       [crypto.randomUUID(), saved.inviteId, saved.name, saved.message.trim(), saved.createdAt],
     );
@@ -507,11 +516,46 @@ export async function createRsvp(
   });
 }
 
+/**
+ * Cho thiệp `inviteId` dùng chung sổ lưu bút của thiệp `rootId`: lời chúc đã
+ * có của nó dồn sang sổ gốc, từ đó mọi lời chúc mới cũng ghi thẳng vào sổ gốc.
+ *
+ * Từ chối khi sổ gốc lại đang mượn sổ khác, hoặc khi đã có thiệp mượn sổ của
+ * `inviteId` — chỉ cho một tầng, để `wishbookOf` không phải lần theo chuỗi.
+ */
+export async function shareWishbook(
+  inviteId: string,
+  rootId: string,
+): Promise<{ ok: true; moved: number } | { ok: false; error: string }> {
+  if (inviteId === rootId) return { ok: false, error: 'hai thiệp trùng nhau' };
+  const sql = await getSql();
+  return sql.transaction(async (tx) => {
+    const { rows: root } = await tx.query('select wishbook_invite_id from invites where id = $1', [rootId]);
+    if (!root[0]) return { ok: false, error: `không có thiệp ${rootId}` };
+    if (root[0].wishbook_invite_id) return { ok: false, error: 'thiệp gốc đang mượn sổ của thiệp khác' };
+
+    const { rows: borrowers } = await tx.query('select id from invites where wishbook_invite_id = $1', [inviteId]);
+    if (borrowers.length > 0) return { ok: false, error: 'đang có thiệp khác mượn sổ của thiệp này' };
+
+    const { rows: linked } = await tx.query(
+      'update invites set wishbook_invite_id = $2 where id = $1 returning id',
+      [inviteId, rootId],
+    );
+    if (!linked[0]) return { ok: false, error: `không có thiệp ${inviteId}` };
+
+    const { rows: moved } = await tx.query(
+      'update wishes set invite_id = $2 where invite_id = $1 returning id',
+      [inviteId, rootId],
+    );
+    return { ok: true, moved: moved.length };
+  });
+}
+
 export async function createWish(row: Omit<WishRow, 'id' | 'createdAt'>): Promise<WishRow> {
   const sql = await getSql();
   const { rows } = await sql.query(
     `insert into wishes (id, invite_id, name, message)
-     values ($1, $2, $3, $4)
+     values ($1, ${wishbookOf('$2')}, $3, $4)
      returning *`,
     [crypto.randomUUID(), row.inviteId, row.name, row.message],
   );
