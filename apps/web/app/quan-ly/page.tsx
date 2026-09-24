@@ -73,7 +73,26 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <h2 style={h2}>Thiệp của bạn ({rows.length})</h2>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <h2 style={h2}>Thiệp của bạn ({rows.length})</h2>
+        <div style={{ flex: 1 }} />
+        <a
+          href="/trochoiamnhac"
+          target="_blank"
+          rel="noopener"
+          style={{
+            padding: '6px 12px',
+            borderRadius: 999,
+            background: '#7a2c2c',
+            color: '#fff',
+            fontSize: 13,
+            fontWeight: 600,
+            textDecoration: 'none',
+          }}
+        >
+          ♫ Trò chơi âm nhạc
+        </a>
+      </div>
       <div style={{ ...card, marginBottom: 10 }}>
         <CreateInviteForm templates={allTemplates.map((t) => ({ id: t.id, name: t.name }))} />
       </div>
