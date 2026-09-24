@@ -307,6 +307,7 @@ export const GAME_HTML = /* html */ `<!doctype html>
     .button-label.is-visible{display:inline}
 
     .record-stack{
+      --disc:78%;
       position:relative;
       display:grid;
       place-items:center;
@@ -314,77 +315,239 @@ export const GAME_HTML = /* html */ `<!doctype html>
       aspect-ratio:1;
     }
 
-    .record-plinth{
+    /* Vòng sóng nhạc + quầng sáng vẽ bằng canvas, tràn ra ngoài đĩa */
+    .visualizer{
       position:absolute;
-      bottom:5%;
-      width:91%;
-      height:26%;
-      border-radius:50%;
-      background:linear-gradient(145deg,#e9d1a8,#b98846 52%,#f5e7ca);
-      box-shadow:0 26px 35px rgba(93,55,42,.24),inset 0 2px 7px rgba(255,255,255,.8);
+      inset:-14%;
+      width:128%;
+      height:128%;
+      z-index:1;
+      pointer-events:none;
     }
 
-    .record-shadow{
+    .record-plinth{
       position:absolute;
-      width:82%;
+      inset:4% 3% 2% 3%;
+      border-radius:9%;
+      background:
+        linear-gradient(160deg,rgba(255,255,255,.55),rgba(255,255,255,0) 40%),
+        linear-gradient(145deg,#f1dcb6,#c49658 55%,#e9d3a8);
+      box-shadow:
+        0 30px 45px rgba(93,55,42,.22),
+        0 6px 0 #a67a3f,
+        inset 0 2px 6px rgba(255,255,255,.85),
+        inset 0 -8px 18px rgba(120,80,40,.25);
+    }
+
+    .platter{
+      position:absolute;
+      width:calc(var(--disc) + 5%);
       aspect-ratio:1;
       border-radius:50%;
-      background:rgba(53,31,31,.28);
-      filter:blur(20px);
-      transform:translate(12px,17px);
+      background:conic-gradient(from 20deg,#8f8a86,#d9d5d0,#77716c,#cfcac4,#8f8a86,#e3dfda,#8f8a86);
+      box-shadow:0 14px 26px rgba(52,28,28,.35),inset 0 0 0 2px rgba(255,255,255,.35);
     }
 
     .vinyl{
       position:relative;
       z-index:2;
-      display:grid;
-      place-items:center;
-      width:88%;
+      width:var(--disc);
       aspect-ratio:1;
-      border:10px solid #cba363;
+      padding:0;
+      border:0;
       border-radius:50%;
       cursor:pointer;
-      background:repeating-radial-gradient(circle at center,#171416 0 4px,#292225 5px 6px,#151214 7px 10px);
-      box-shadow:inset 0 0 0 2px rgba(255,255,255,.13),inset 8px 0 21px rgba(255,255,255,.04),0 22px 31px rgba(52,28,28,.27);
-      transition:transform .2s ease;
+      background:none;
+      transition:transform .25s ease;
     }
 
-    .vinyl::before{
+    .vinyl:hover{transform:scale(1.015)}
+
+    .disc{
+      position:absolute;
+      inset:0;
+      border-radius:50%;
+      background:
+        conic-gradient(from 0deg,rgba(255,255,255,.07),transparent 9%,rgba(255,255,255,.04) 21%,transparent 33%,rgba(255,255,255,.06) 52%,transparent 64%,rgba(255,255,255,.03) 80%,transparent 92%),
+        repeating-radial-gradient(circle at center,#0d0b0c 0 1.2px,#1d1a1c 1.6px 2.3px,#0f0d0e 2.8px 3.6px),
+        #111;
+      box-shadow:
+        0 0 0 3px #1a1718,
+        0 0 0 5px #c9a365,
+        inset 0 0 0 1px rgba(255,255,255,.08),
+        inset 0 0 30px rgba(0,0,0,.6);
+      will-change:transform;
+    }
+
+    /* Hai vạch phân bài trên mặt đĩa */
+    .disc::before,
+    .disc::after{
       content:"";
       position:absolute;
-      inset:9%;
-      border:1px solid rgba(235,204,142,.3);
-      border-radius:inherit;
+      border-radius:50%;
+      border:2px solid rgba(0,0,0,.55);
+      box-shadow:0 0 0 1px rgba(255,255,255,.05);
     }
-
-    .vinyl:hover{transform:scale(1.018)}
-    .vinyl.is-spinning{animation:spin 2.7s linear infinite}
+    .disc::before{inset:14%}
+    .disc::after{inset:24%}
 
     .record-label{
-      position:relative;
+      position:absolute;
+      inset:31%;
       display:grid;
       place-items:center;
-      width:36%;
-      aspect-ratio:1;
-      border:6px solid #eed397;
       border-radius:50%;
-      background:radial-gradient(circle at 35% 25%,#dba2a0,#9f6063 67%,#744148);
+      background:
+        radial-gradient(circle at 50% 50%,transparent 0 30%,rgba(255,255,255,.12) 30.5% 31%,transparent 31.5%),
+        radial-gradient(circle at 35% 25%,#e3aaa7,#a4656a 62%,#6f3d45);
+      box-shadow:0 0 0 3px #eed397,0 0 0 5px #6f3d45,inset 0 -6px 14px rgba(60,20,30,.35);
       color:#fff8ed;
       text-align:center;
       font-family:"Playfair Display",serif;
-      font-size:clamp(.85rem,2vw,1.2rem);
+      font-size:clamp(.72rem,1.7vw,1rem);
       font-weight:700;
-      line-height:1.06;
-      box-shadow:0 0 0 3px #70434a;
+      line-height:1.05;
+      letter-spacing:.04em;
     }
+
+    .label-ring{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      overflow:visible;
+    }
+
+    .label-ring text{
+      fill:#fbe7c2;
+      font-family:"Alegreya Sans",sans-serif;
+      font-size:7.2px;
+      font-weight:800;
+      letter-spacing:1.6px;
+    }
+
+    /* Chữ tách hai phía lỗ trục để không bị lỗ che */
+    .label-title{
+      position:relative;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:calc(var(--u) * 6);
+      font-size:calc(var(--u) * 2.5);
+      white-space:nowrap;
+    }
+    .label-title small{font-family:"Alegreya Sans",sans-serif;font-size:.78em;font-weight:800;letter-spacing:.22em;color:#f6d9a5}
 
     .record-hole{
       position:absolute;
-      width:14px;
+      left:50%;
+      top:50%;
+      width:5%;
       aspect-ratio:1;
-      border:3px solid #e8d5ac;
       border-radius:50%;
-      background:#27191b;
+      transform:translate(-50%,-50%);
+      background:radial-gradient(circle at 35% 30%,#fff,#c9c3bd 45%,#7b746f);
+      box-shadow:0 1px 3px rgba(0,0,0,.5);
+    }
+
+    /* Vệt phản sáng đứng yên trong khi đĩa quay — thứ làm đĩa trông thật */
+    .sheen{
+      position:absolute;
+      inset:0;
+      border-radius:50%;
+      pointer-events:none;
+      background:
+        conic-gradient(from 300deg,transparent 0 6%,rgba(255,255,255,.2) 10%,transparent 15%,transparent 50%,rgba(255,255,255,.14) 57%,transparent 62%),
+        radial-gradient(circle at 30% 25%,rgba(255,255,255,.1),transparent 45%);
+      -webkit-mask:radial-gradient(circle,transparent 0 31%,#000 32%);
+      mask:radial-gradient(circle,transparent 0 31%,#000 32%);
+      mix-blend-mode:screen;
+    }
+
+    /* Tay kim: xoay quanh trục ở góc trên phải */
+    .tonearm{
+      position:absolute;
+      z-index:3;
+      left:89%;
+      top:12%;
+      width:0;
+      height:0;
+      pointer-events:none;
+    }
+
+    .arm-base{
+      position:absolute;
+      width:calc(var(--u) * 15);
+      aspect-ratio:1;
+      border-radius:50%;
+      transform:translate(-50%,-50%);
+      background:radial-gradient(circle at 35% 30%,#fff7e6,#d6b173 45%,#8c6630);
+      box-shadow:0 6px 12px rgba(60,35,20,.35),inset 0 0 0 2px rgba(255,255,255,.4);
+    }
+
+    .arm-swing{
+      position:absolute;
+      left:0;
+      top:0;
+      transform:rotate(-6deg);
+      transform-origin:0 0;
+      transition:transform 1s cubic-bezier(.45,.05,.25,1.15);
+    }
+
+    .record-stack.is-playing .arm-swing{transform:rotate(19deg)}
+
+    .arm-rod{
+      position:absolute;
+      left:calc(var(--u) * -1.1);
+      top:calc(var(--u) * -12);
+      width:calc(var(--u) * 2.2);
+      height:calc(var(--u) * 72);
+      border-radius:999px;
+      background:linear-gradient(90deg,#7c7671,#f4f1ec 45%,#a39d97);
+      box-shadow:3px 6px 8px rgba(40,25,20,.3);
+    }
+
+    .arm-weight{
+      position:absolute;
+      left:calc(var(--u) * -3.5);
+      top:calc(var(--u) * -17);
+      width:calc(var(--u) * 7);
+      height:calc(var(--u) * 8);
+      border-radius:calc(var(--u) * 1.5);
+      background:linear-gradient(90deg,#3b3336,#6d6266 50%,#2c2527);
+    }
+
+    .arm-head{
+      position:absolute;
+      left:calc(var(--u) * -3);
+      top:calc(var(--u) * 57);
+      width:calc(var(--u) * 6);
+      height:calc(var(--u) * 11);
+      border-radius:calc(var(--u) * 1.2);
+      transform:rotate(18deg);
+      transform-origin:50% 0;
+      background:linear-gradient(90deg,#2f282a,#5d5357 50%,#2a2325);
+      box-shadow:2px 5px 7px rgba(40,25,20,.35);
+    }
+
+    .arm-pin{
+      position:absolute;
+      width:calc(var(--u) * 5);
+      aspect-ratio:1;
+      border-radius:50%;
+      transform:translate(-50%,-50%);
+      background:radial-gradient(circle at 35% 30%,#fff,#9c958f);
+    }
+
+    .record-stack{--u:calc(min(72vw,495px) / 100)}
+
+    .notes{position:absolute;inset:0;z-index:4;pointer-events:none;overflow:visible}
+    .note{
+      position:absolute;
+      color:#f6d49a;
+      font-size:clamp(18px,3vw,28px);
+      text-shadow:0 0 8px rgba(189,119,119,.9),0 2px 4px rgba(60,30,30,.5);
+      animation:floatNote 2.8s ease-out forwards;
     }
 
     .tap-hint{
@@ -405,7 +568,7 @@ export const GAME_HTML = /* html */ `<!doctype html>
       cursor:pointer;
     }
 
-    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes floatNote{0%{opacity:0;transform:translate(0,0) rotate(0) scale(.6)}15%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--rot)) scale(1.15)}}
     @keyframes pulse{50%{transform:scale(1.5);opacity:.5}}
     @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
     @keyframes answerReveal{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -415,7 +578,7 @@ export const GAME_HTML = /* html */ `<!doctype html>
       .game-grid{grid-template-columns:1fr;padding:1.2rem 0 1.5rem}
       .game-copy{text-align:center}
       .record-zone{order:-1}
-      .record-stack{width:min(79vw,390px)}
+      .record-stack{width:min(79vw,390px);--u:calc(min(79vw,390px) / 100)}
       .status-card{text-align:left}
       .action-row{justify-content:center}
     }
@@ -482,13 +645,33 @@ export const GAME_HTML = /* html */ `<!doctype html>
           </div>
         </div>
         <div class="record-zone">
-          <div class="record-stack">
+          <div id="record-stack" class="record-stack">
             <div class="record-plinth"></div>
-            <div class="record-shadow"></div>
+            <canvas id="visualizer" class="visualizer" aria-hidden="true"></canvas>
+            <div class="platter"></div>
             <button id="vinyl-button" class="vinyl" type="button" aria-label="Phát nhạc">
-              <span class="record-label">LOVE<br>SONGS</span>
+              <span id="disc" class="disc">
+                <span class="record-label">
+                  <svg class="label-ring" viewBox="0 0 100 100" aria-hidden="true">
+                    <defs><path id="label-path" d="M50,50 m-39,0 a39,39 0 1,1 78,0 a39,39 0 1,1 -78,0"/></defs>
+                    <text><textPath href="#label-path">WEDDING MUSIC GAME ♥ ĐOÁN GIAI ĐIỆU ♥</textPath></text>
+                  </svg>
+                  <span class="label-title"><span>LOVE SONGS</span><small id="label-round">VÒNG 1</small></span>
+                </span>
+              </span>
+              <span class="sheen"></span>
               <span class="record-hole"></span>
             </button>
+            <div class="tonearm" aria-hidden="true">
+              <div class="arm-swing">
+                <div class="arm-weight"></div>
+                <div class="arm-rod"></div>
+                <div class="arm-head"></div>
+              </div>
+              <div class="arm-base"></div>
+              <div class="arm-pin"></div>
+            </div>
+            <div id="notes" class="notes" aria-hidden="true"></div>
             <div id="record-hint" class="tap-hint" role="button" tabindex="0">Bấm vào đĩa để phát nhạc</div>
           </div>
         </div>
@@ -518,7 +701,7 @@ export const GAME_HTML = /* html */ `<!doctype html>
 
       const isPlaying = nextState === "playing";
       el("status-card").classList.toggle("is-playing", isPlaying);
-      el("vinyl-button").classList.toggle("is-spinning", isPlaying);
+      el("record-stack").classList.toggle("is-playing", isPlaying);
 
       const ariaLabels = {
         ready: "Phát nhạc",
@@ -542,6 +725,10 @@ export const GAME_HTML = /* html */ `<!doctype html>
         state.audio.currentTime = 0;
         state.audio.removeAttribute("src");
         state.audio.load();
+      }
+      if (state.source) {
+        state.source.disconnect();
+        state.source = null;
       }
 
       state.audio = null;
@@ -567,6 +754,7 @@ export const GAME_HTML = /* html */ `<!doctype html>
       const isLastRound = number === rounds.length;
 
       el("round-label").textContent = "Vòng " + number + "/" + rounds.length;
+      el("label-round").textContent = "VÒNG " + number;
       el("progress-fill").style.width = (number / rounds.length * 100) + "%";
 
       el("next-label").classList.toggle("is-visible", !isLastRound);
@@ -592,6 +780,7 @@ export const GAME_HTML = /* html */ `<!doctype html>
         state.audio.preload = "none";
         state.audio.addEventListener("ended", handleAudioEnded);
         state.audio.addEventListener("error", handleAudioError);
+        connectAnalyser(state.audio);
       }
       return state.audio;
     }
@@ -607,6 +796,7 @@ export const GAME_HTML = /* html */ `<!doctype html>
       }
 
       try {
+        if (state.ctx && state.ctx.state === "suspended") state.ctx.resume();
         if (audio.readyState === 0) audio.load();
         await audio.play();
         setAudioStatus("playing");
@@ -615,6 +805,133 @@ export const GAME_HTML = /* html */ `<!doctype html>
         showAudioError(true);
       }
     }
+
+    /**
+     * Nối audio vào bộ phân tích tần số để vòng sóng nhảy theo nhạc thật.
+     * Trình duyệt nào không cho thì thôi — nhạc vẫn phát, sóng chạy giả lập.
+     */
+    function connectAnalyser(audio) {
+      try {
+        if (!state.ctx) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (!Ctx) return;
+          state.ctx = new Ctx();
+          state.analyser = state.ctx.createAnalyser();
+          state.analyser.fftSize = 256;
+          state.analyser.smoothingTimeConstant = 0.78;
+          state.analyser.connect(state.ctx.destination);
+          state.freq = new Uint8Array(state.analyser.frequencyBinCount);
+        }
+        state.source = state.ctx.createMediaElementSource(audio);
+        state.source.connect(state.analyser);
+      } catch (error) {
+        state.source = null;
+      }
+    }
+
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const BARS = 72;
+    const levels = new Float32Array(BARS);
+    const canvas = el("visualizer");
+    const g = canvas.getContext("2d");
+    const disc = el("disc");
+    const anim = { rot: 0, speed: 0, bass: 0, last: performance.now(), noteIn: 0 };
+
+    function spawnNote() {
+      const note = document.createElement("span");
+      note.className = "note";
+      note.textContent = ["♪", "♫", "♬", "♥"][Math.floor(Math.random() * 4)];
+      note.style.left = (18 + Math.random() * 64) + "%";
+      note.style.top = (22 + Math.random() * 36) + "%";
+      note.style.setProperty("--dx", (Math.random() * 90 - 45) + "px");
+      note.style.setProperty("--dy", -(120 + Math.random() * 90) + "px");
+      note.style.setProperty("--rot", (Math.random() * 50 - 25) + "deg");
+      note.addEventListener("animationend", () => note.remove());
+      el("notes").appendChild(note);
+    }
+
+    function frame(now) {
+      const dt = Math.min(0.05, (now - anim.last) / 1000);
+      anim.last = now;
+      const playing = state.audioState === "playing";
+
+      // Đĩa lấy đà rồi mới đạt tốc độ, dừng thì trôi chậm lại như máy thật
+      const target = playing ? (reduceMotion ? 60 : 150) : 0;
+      anim.speed += (target - anim.speed) * Math.min(1, dt * (playing ? 1.4 : 2));
+      anim.rot = (anim.rot + anim.speed * dt) % 360;
+      disc.style.transform = "rotate(" + anim.rot.toFixed(2) + "deg)";
+
+      const live = playing && state.source && state.analyser;
+      if (live) state.analyser.getByteFrequencyData(state.freq);
+
+      let bassNow = 0;
+      if (live) {
+        for (let b = 1; b < 7; b++) bassNow += state.freq[b];
+        bassNow /= 6 * 255;
+      } else if (playing) {
+        bassNow = 0.45 + 0.25 * Math.sin(now / 260);
+      }
+      anim.bass += (bassNow - anim.bass) * 0.15;
+
+      for (let i = 0; i < BARS; i++) {
+        let v = 0;
+        if (live) {
+          // Lấy đối xứng để vòng sóng cân hai bên
+          const j = i < BARS / 2 ? i : BARS - 1 - i;
+          const bin = 2 + Math.floor((j / (BARS / 2)) * state.freq.length * 0.6);
+          v = state.freq[bin] / 255;
+        } else if (playing) {
+          v = 0.3 + 0.28 * Math.sin(now / 170 + i * 0.7) * Math.sin(now / 430 + i * 0.29);
+        }
+        levels[i] += (v - levels[i]) * (v > levels[i] ? 0.5 : 0.1);
+      }
+
+      const dpr = window.devicePixelRatio || 1;
+      const w = Math.round(canvas.clientWidth * dpr);
+      if (canvas.width !== w) { canvas.width = w; canvas.height = w; }
+      g.clearRect(0, 0, w, w);
+
+      const stack = w / 1.28;
+      const c = w / 2;
+      const r0 = stack * 0.435;
+      const energy = Math.min(1, anim.speed / 150);
+
+      if (energy > 0.01) {
+        const glow = g.createRadialGradient(c, c, r0 * 0.85, c, c, r0 + stack * 0.2);
+        glow.addColorStop(0, "rgba(232,176,160," + (0.1 + anim.bass * 0.4) * energy + ")");
+        glow.addColorStop(1, "rgba(232,176,160,0)");
+        g.fillStyle = glow;
+        g.beginPath();
+        g.arc(c, c, r0 + stack * 0.2, 0, Math.PI * 2);
+        g.fill();
+      }
+
+      g.lineCap = "round";
+      g.lineWidth = Math.max(2, stack * 0.012);
+      const spin = (anim.rot * 0.15 * Math.PI) / 180;
+      for (let i = 0; i < BARS; i++) {
+        const len = levels[i] * stack * 0.13;
+        if (len < 0.5) continue;
+        const a = spin + (i / BARS) * Math.PI * 2 - Math.PI / 2;
+        const cos = Math.cos(a), sin = Math.sin(a);
+        g.strokeStyle = i % 2 ? "rgba(198,155,90,0.9)" : "rgba(189,119,119,0.9)";
+        g.beginPath();
+        g.moveTo(c + cos * r0, c + sin * r0);
+        g.lineTo(c + cos * (r0 + len), c + sin * (r0 + len));
+        g.stroke();
+      }
+
+      if (playing && !reduceMotion) {
+        anim.noteIn -= dt;
+        if (anim.noteIn <= 0) {
+          spawnNote();
+          anim.noteIn = 0.45 + Math.random() * 0.6 - anim.bass * 0.25;
+        }
+      }
+
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
 
     el("vinyl-button").addEventListener("click", toggleAudio);
     el("record-hint").addEventListener("click", toggleAudio);
